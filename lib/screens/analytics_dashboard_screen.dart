@@ -107,17 +107,8 @@ class _AnalyticsDashboardScreenState extends State<AnalyticsDashboardScreen> {
   }
 
   Widget _buildStatsCards() {
-    return Row(
-      children: [
-        _buildStatCard('147', 'Total Students', AppColors.primary, '↗ +12'),
-        const SizedBox(width: 16),
-        _buildStatCard('78%', 'Pass Rate', AppColors.success, '↗ +5%'),
-        const SizedBox(width: 16),
-        _buildStatCard('85%', 'Attendance', AppColors.warning, '↗ +3%'),
-        const SizedBox(width: 16),
-        _buildStatCard('132', 'Assessments', Colors.grey[400]!, ''),
-      ],
-    );
+    // TODO: Replace with dynamic stats from backend
+    return const Center(child: Text('No stats data'));
   }
 
   Widget _buildStatCard(String value, String label, Color color, String trend) {
@@ -161,46 +152,8 @@ class _AnalyticsDashboardScreenState extends State<AnalyticsDashboardScreen> {
   }
 
   Widget _buildPerformanceTrends() {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.border),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Row(
-            children: [
-              Icon(Icons.trending_up, size: 16, color: AppColors.primary),
-              SizedBox(width: 8),
-              Text(
-                'Performance Trends',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-              ),
-            ],
-          ),
-          const SizedBox(height: 4),
-          Text(
-            'Monthly assessment performance overview',
-            style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
-          ),
-          const SizedBox(height: 20),
-          SizedBox(
-            height: 200,
-            child: Column(
-              children: [
-                _buildTrendItem('Sep 2024', 'Completion Rate', 0.85),
-                _buildTrendItem('Oct 2024', 'Completion Rate', 0.88),
-                _buildTrendItem('Nov 2024', 'Completion Rate', 0.92),
-                _buildTrendItem('Dec 2024', 'Completion Rate', 0.78),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
+    // TODO: Replace with dynamic performance trends from backend
+    return const Center(child: Text('No performance trends data'));
   }
 
   Widget _buildTrendItem(String month, String metric, double value) {
@@ -339,45 +292,8 @@ class _AnalyticsDashboardScreenState extends State<AnalyticsDashboardScreen> {
   }
 
   Widget _buildWeeklyAttendance() {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.border),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Row(
-            children: [
-              Icon(Icons.calendar_today, size: 16, color: AppColors.primary),
-              SizedBox(width: 8),
-              Text(
-                'Weekly Attendance Patterns',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-              ),
-            ],
-          ),
-          const SizedBox(height: 4),
-          Text(
-            'Daily attendance distribution this week',
-            style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
-          ),
-          const SizedBox(height: 20),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [
-              _buildAttendanceBar('Monday', 0.95),
-              _buildAttendanceBar('Tuesday', 0.88),
-              _buildAttendanceBar('Wednesday', 0.92),
-              _buildAttendanceBar('Thursday', 0.85),
-              _buildAttendanceBar('Friday', 0.78),
-            ],
-          ),
-        ],
-      ),
-    );
+    // TODO: Replace with dynamic weekly attendance from backend
+    return const Center(child: Text('No weekly attendance data'));
   }
 
   Widget _buildAttendanceBar(String day, double value) {
@@ -413,40 +329,8 @@ class _AnalyticsDashboardScreenState extends State<AnalyticsDashboardScreen> {
   }
 
   Widget _buildSubjectPerformance() {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.border),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Row(
-            children: [
-              Icon(Icons.bar_chart, size: 16, color: AppColors.secondary),
-              SizedBox(width: 8),
-              Text(
-                'Subject Performance',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-              ),
-            ],
-          ),
-          const SizedBox(height: 4),
-          Text(
-            'Average scores by subject area',
-            style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
-          ),
-          const SizedBox(height: 16),
-          _buildSubjectItem('JavaScript', 0.92, '92%'),
-          _buildSubjectItem('HTML/CSS', 0.88, '88%'),
-          _buildSubjectItem('React', 0.85, '85%'),
-          _buildSubjectItem('Node.js', 0.78, '78%'),
-          _buildSubjectItem('Database', 0.82, '82%'),
-        ],
-      ),
-    );
+    // TODO: Replace with dynamic subject performance from backend
+    return const Center(child: Text('No subject performance data'));
   }
 
   Widget _buildSubjectItem(String subject, double value, String percentage) {

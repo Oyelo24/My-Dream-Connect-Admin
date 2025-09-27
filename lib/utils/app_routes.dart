@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../screens/login_screen.dart';
+import '../screens/signup_screen.dart';
 import '../screens/admin_dashboard.dart';
 import '../screens/attendance_management_screen.dart';
 import '../screens/student_management.dart';
@@ -8,6 +9,7 @@ import '../screens/analytics_dashboard_screen.dart';
 
 class AppRoutes {
   static const String login = '/';
+  static const String signup = '/signup';
   static const String dashboard = '/dashboard';
   static const String attendance = '/attendance';
   static const String students = '/students';
@@ -17,6 +19,7 @@ class AppRoutes {
   static Map<String, WidgetBuilder> get routes {
     return {
       login: (context) => const LoginScreen(),
+      signup: (context) => const SignupScreen(),
       dashboard: (context) => const AdminDashboard(),
       attendance: (context) => const AttendanceManagementScreen(),
       students: (context) => const StudentManagement(),
@@ -29,6 +32,8 @@ class AppRoutes {
     switch (settings.name) {
       case login:
         return MaterialPageRoute(builder: (context) => const LoginScreen());
+      case signup:
+        return MaterialPageRoute(builder: (context) => const SignupScreen());
       case dashboard:
         return MaterialPageRoute(builder: (context) => const AdminDashboard());
       case attendance:

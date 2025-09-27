@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../utils/app_routes.dart';
+import '../viewmodels/auth_viewmodel.dart';
+//import '../services/config_service.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -13,18 +16,56 @@ class _LoginScreenState extends State<LoginScreen> {
   final _passwordController = TextEditingController();
   bool _obscurePassword = true;
 
-  void _login() {
-    Navigator.pushReplacementNamed(context, AppRoutes.dashboard);
+
+  // @override
+  // void initState() {
+  //   super.initState();
+  //   // Initialize auth service with default user type
+  //   WidgetsBinding.instance.addPostFrameCallback((_) {
+  //     if (mounted) {
+  //       try {
+  //         context.read<AuthViewModel>().setUserType(_selectedUserType);
+  //       } catch (e) {
+  //         // Silently handle any context issues during initialization
+  //         print('AuthViewModel initialization skipped: $e');
+  //       }
+  //     }
+  //   });
+  // }
+
+  Future<void> _login() async {
+    final viewModel = Provider.of<AuthViewModel>(context, listen: false);
+    final success = await viewModel.login(
+      _emailController.text.trim(),
+      _passwordController.text.trim(),
+    );
+
+    if (success && mounted) {
+      Navigator.pushReplacementNamed(context, AppRoutes.dashboard);
+    }
   }
+
+  // void _onUserTypeChanged(String? value) {
+  //   if (value != null) {
+  //     setState(() {
+  //       _selectedUserType = value;
+  //     });
+  //     context.read<AuthViewModel>().setUserType(value);
+  //   }
+  // }
 
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isMobile = screenWidth < 768;
+
     return Scaffold(
       backgroundColor: Colors.grey[50],
       body: Center(
         child: Container(
-          width: 400,
-          padding: const EdgeInsets.all(32),
+          width: isMobile ? screenWidth * 0.9 : 450,
+          constraints: const BoxConstraints(maxWidth: 450),
+          padding: EdgeInsets.all(isMobile ? 24 : 32),
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(12),
@@ -53,148 +94,143 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
               ),
               const SizedBox(height: 24),
-              const Text(
-                'Admin Portal',
+              Text(
+                'MDC Admin Portal',
                 style: TextStyle(
-                  fontSize: 28,
+                  fontSize: isMobile ? 24 : 28,
                   fontWeight: FontWeight.bold,
-                  color: Color(0xFF2C3E50),
+                  color: const Color(0xFF2C3E50),
                 ),
               ),
               const SizedBox(height: 8),
               Text(
-                'MyDreamConnect Management System',
-                style: TextStyle(
-                  fontSize: 14,
-                  color: Colors.grey[600],
-                ),
-              ),
-              const SizedBox(height: 40),
-              const Text(
-                'Administrator Sign In',
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.w600,
-                  color: Color(0xFF2C3E50),
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Access the bootcamp management dashboard',
-                style: TextStyle(
-                  fontSize: 14,
-                  color: Colors.grey[600],
-                ),
+                'Sign in to access the dashboard',
+                style: TextStyle(fontSize: 14, color: Colors.grey[600]),
               ),
               const SizedBox(height: 32),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Admin Email',
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w500,
-                      color: Color(0xFF2C3E50),
-                    ),
+      
+
+      
+              // const SizedBox(height: 16),
+      
+              TextField(
+                controller: _emailController,
+                decoration: InputDecoration(
+                  labelText: 'Email',
+                  hintText: 'Enter your email address',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
                   ),
-                  const SizedBox(height: 8),
-                  TextField(
-                    controller: _emailController,
-                    decoration: InputDecoration(
-                      hintText: 'admin@mydreamconnect.com',
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                        borderSide: BorderSide(color: Colors.grey[300]!),
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                        borderSide: BorderSide(color: Colors.grey[300]!),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                        borderSide: const BorderSide(color: Color(0xFF4A90E2)),
-                      ),
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 12,
-                      ),
-                    ),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
                   ),
-                ],
+                ),
               ),
-              const SizedBox(height: 20),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Password',
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w500,
-                      color: Color(0xFF2C3E50),
-                    ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: _passwordController,
+                obscureText: _obscurePassword,
+                decoration: InputDecoration(
+                  labelText: 'Password',
+                  hintText: 'Enter your password',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
                   ),
-                  const SizedBox(height: 8),
-                  TextField(
-                    controller: _passwordController,
-                    obscureText: _obscurePassword,
-                    decoration: InputDecoration(
-                      hintText: 'Enter your admin password',
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                        borderSide: BorderSide(color: Colors.grey[300]!),
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                        borderSide: BorderSide(color: Colors.grey[300]!),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                        borderSide: const BorderSide(color: Color(0xFF4A90E2)),
-                      ),
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 12,
-                      ),
-                      suffixIcon: IconButton(
-                        icon: Icon(
-                          _obscurePassword
-                              ? Icons.visibility_off
-                              : Icons.visibility,
-                          color: Colors.grey[600],
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
+                  suffixIcon: IconButton(
+                    icon: Icon(
+                      _obscurePassword
+                          ? Icons.visibility_off
+                          : Icons.visibility,
+                    ),
+                    onPressed: () {
+                      setState(() {
+                        _obscurePassword = !_obscurePassword;
+                      });
+                    },
+                  ),
+                ),
+              ),
+              const SizedBox(height: 24),
+      
+              // Error Message
+              Consumer<AuthViewModel>(
+                builder: (context, viewModel, child) {
+                  return viewModel.errorMessage != null
+                      ? Container(
+                          padding: const EdgeInsets.all(12),
+                          margin: const EdgeInsets.only(bottom: 16),
+                          decoration: BoxDecoration(
+                            color: Colors.red[50],
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: Colors.red[200]!),
+                          ),
+                          child: Row(
+                            children: [
+                              const Icon(
+                                Icons.error_outline,
+                                color: Colors.red,
+                                size: 20,
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  viewModel.errorMessage!,
+                                  style: const TextStyle(color: Colors.red),
+                                ),
+                              ),
+                            ],
+                          ),
+                        )
+                      : const SizedBox.shrink();
+                },
+              ),
+      
+              Consumer<AuthViewModel>(
+                builder: (context, viewModel, child) {
+                  return SizedBox(
+                    width: double.infinity,
+                    height: 48,
+                    child: ElevatedButton(
+                      onPressed: viewModel.isLoading ? null : _login,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF4A90E2),
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
                         ),
-                        onPressed: () {
-                          setState(() {
-                            _obscurePassword = !_obscurePassword;
-                          });
-                        },
                       ),
+                      child: viewModel.isLoading
+                          ? const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(
+                                color: Colors.white,
+                                strokeWidth: 2,
+                              ),
+                            )
+                          : const Text(
+                              'Access Admin Dashboard',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
                     ),
-                  ),
-                ],
+                  );
+                },
               ),
-              const SizedBox(height: 32),
-              SizedBox(
-                width: double.infinity,
-                height: 48,
-                child: ElevatedButton(
-                  onPressed: _login,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF4A90E2),
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    elevation: 0,
-                  ),
-                  child: const Text(
-                    'Access Admin Dashboard',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
+              const SizedBox(height: 16),
+              TextButton(
+                onPressed: () {
+                  Navigator.pushNamed(context, AppRoutes.signup);
+                },
+                child: const Text(
+                  'Need an admin account? Sign Up',
                 ),
               ),
             ],

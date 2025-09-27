@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import '../utils/app_colors.dart';
+import '../models/assessment.dart';
+import '../services/assessment_service.dart';
 
 class AssessmentManagementScreen extends StatefulWidget {
   const AssessmentManagementScreen({super.key});
@@ -11,48 +13,34 @@ class AssessmentManagementScreen extends StatefulWidget {
 
 class _AssessmentManagementScreenState
     extends State<AssessmentManagementScreen> {
-  final List<Assessment> assessments = [
-    Assessment(
-      title: 'JavaScript Fundamentals Quiz',
-      subject: 'JavaScript',
-      duration: '15 min',
-      questions: '10\nMultiple Choice, True/False',
-      status: AssessmentStatus.active,
-      completion: '45/50',
-      performance: '87%\n90% pass rate',
-      createdDate: '2024-12-01',
-    ),
-    Assessment(
-      title: 'HTML & CSS Mastery Test',
-      subject: 'Web Development',
-      duration: '20 min',
-      questions: '15\nMultiple Choice, Short Answer',
-      status: AssessmentStatus.completed,
-      completion: '48/50',
-      performance: '82%\n85% pass rate',
-      createdDate: '2024-11-28',
-    ),
-    Assessment(
-      title: 'React Components Assessment',
-      subject: 'React',
-      duration: '25 min',
-      questions: '12\nMultiple Choice, True/False, Short Answer',
-      status: AssessmentStatus.draft,
-      completion: '0/50',
-      performance: '',
-      createdDate: '2024-12-08',
-    ),
-    Assessment(
-      title: 'Final Project Evaluation',
-      subject: 'Full Stack Development',
-      duration: '60 min',
-      questions: '20\nMultiple Choice, Short Answer, Code Review',
-      status: AssessmentStatus.scheduled,
-      completion: '0/50',
-      performance: '',
-      createdDate: '2024-12-05',
-    ),
-  ];
+  List<Assessment> assessments = [];
+  bool isLoading = true;
+  String? errorMessage;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchAssessments();
+  }
+
+  Future<void> _fetchAssessments() async {
+    setState(() {
+      isLoading = true;
+      errorMessage = null;
+    });
+    try {
+      final data = await AssessmentService().getAllAssessments();
+      setState(() {
+        assessments = List<Assessment>.from(data);
+        isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        errorMessage = 'Failed to load assessments';
+        isLoading = false;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -71,7 +59,10 @@ class _AssessmentManagementScreenState
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.primary,
                   foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
                 ),
               ),
             ],
@@ -292,13 +283,20 @@ class _AssessmentManagementScreenState
                 ],
               ),
             ),
-            Expanded(
-              child: ListView.builder(
-                itemCount: assessments.length,
-                itemBuilder: (context, index) =>
-                    _buildAssessmentRow(assessments[index]),
+            if (isLoading)
+              const Expanded(child: Center(child: CircularProgressIndicator()))
+            else if (errorMessage != null)
+              Expanded(child: Center(child: Text('Error: ' + errorMessage!)))
+            else if (assessments.isEmpty)
+              const Expanded(child: Center(child: Text('No assessments found')))
+            else
+              Expanded(
+                child: ListView.builder(
+                  itemCount: assessments.length,
+                  itemBuilder: (context, index) =>
+                      _buildAssessmentRow(assessments[index]),
+                ),
               ),
-            ),
           ],
         ),
       ),
