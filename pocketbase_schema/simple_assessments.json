@@ -1,0 +1,64 @@
+{
+  "name": "assessments",
+  "type": "base",
+  "schema": [
+    {
+      "name": "title",
+      "type": "text",
+      "required": true,
+      "options": {
+        "min": 3,
+        "max": 100
+      }
+    },
+    {
+      "name": "description",
+      "type": "text",
+      "required": true,
+      "options": {
+        "max": 500
+      }
+    },
+    {
+      "name": "courseId",
+      "type": "relation",
+      "required": true,
+      "options": {
+        "collectionId": "courses",
+        "maxSelect": 1
+      }
+    },
+    {
+      "name": "type",
+      "type": "select",
+      "required": true,
+      "options": {
+        "maxSelect": 1,
+        "values": ["quiz", "exam", "assignment", "project"]
+      }
+    },
+    {
+      "name": "totalMarks",
+      "type": "number",
+      "required": true,
+      "options": {
+        "min": 1,
+        "max": 100
+      }
+    },
+    {
+      "name": "dueDate",
+      "type": "date",
+      "required": true
+    },
+    {
+      "name": "status",
+      "type": "select",
+      "required": true,
+      "options": {
+        "maxSelect": 1,
+        "values": ["draft", "published", "completed"]
+      }
+    }
+  ]
+}

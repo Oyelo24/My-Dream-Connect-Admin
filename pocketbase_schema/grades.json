@@ -1,0 +1,130 @@
+{
+  "id": "grades",
+  "name": "grades",
+  "type": "base",
+  "system": false,
+  "schema": [
+    {
+      "id": "studentId",
+      "name": "studentId",
+      "type": "relation",
+      "system": false,
+      "required": true,
+      "options": {
+        "collectionId": "students",
+        "cascadeDelete": true,
+        "minSelect": null,
+        "maxSelect": 1,
+        "displayFields": ["firstName", "lastName", "studentId"]
+      }
+    },
+    {
+      "id": "assessmentId",
+      "name": "assessmentId",
+      "type": "relation",
+      "system": false,
+      "required": true,
+      "options": {
+        "collectionId": "assessments",
+        "cascadeDelete": true,
+        "minSelect": null,
+        "maxSelect": 1,
+        "displayFields": ["title", "type"]
+      }
+    },
+    {
+      "id": "courseId",
+      "name": "courseId",
+      "type": "relation",
+      "system": false,
+      "required": true,
+      "options": {
+        "collectionId": "courses",
+        "cascadeDelete": true,
+        "minSelect": null,
+        "maxSelect": 1,
+        "displayFields": ["courseCode", "courseName"]
+      }
+    },
+    {
+      "id": "marksObtained",
+      "name": "marksObtained",
+      "type": "number",
+      "system": false,
+      "required": true,
+      "options": {
+        "min": 0,
+        "max": null
+      }
+    },
+    {
+      "id": "totalMarks",
+      "name": "totalMarks",
+      "type": "number",
+      "system": false,
+      "required": true,
+      "options": {
+        "min": 1,
+        "max": null
+      }
+    },
+    {
+      "id": "percentage",
+      "name": "percentage",
+      "type": "number",
+      "system": false,
+      "required": false,
+      "options": {
+        "min": 0,
+        "max": 100
+      }
+    },
+    {
+      "id": "grade",
+      "name": "grade",
+      "type": "select",
+      "system": false,
+      "required": false,
+      "options": {
+        "maxSelect": 1,
+        "values": ["A", "B", "C", "D", "F"]
+      }
+    },
+    {
+      "id": "remarks",
+      "name": "remarks",
+      "type": "text",
+      "system": false,
+      "required": false,
+      "options": {
+        "min": null,
+        "max": 200,
+        "pattern": ""
+      }
+    },
+    {
+      "id": "submittedAt",
+      "name": "submittedAt",
+      "type": "date",
+      "system": false,
+      "required": true,
+      "options": {
+        "min": "",
+        "max": ""
+      }
+    }
+  ],
+  "indexes": [
+    "CREATE UNIQUE INDEX idx_grades_unique ON grades (studentId, assessmentId)",
+    "CREATE INDEX idx_grades_studentId ON grades (studentId)",
+    "CREATE INDEX idx_grades_assessmentId ON grades (assessmentId)",
+    "CREATE INDEX idx_grades_courseId ON grades (courseId)",
+    "CREATE INDEX idx_grades_grade ON grades (grade)",
+    "CREATE INDEX idx_grades_percentage ON grades (percentage)"
+  ],
+  "listRule": "@request.auth.id != '' && (@request.auth.role = 'admin' || studentId.userId = @request.auth.id)",
+  "viewRule": "@request.auth.id != '' && (@request.auth.role = 'admin' || studentId.userId = @request.auth.id)",
+  "createRule": "@request.auth.role = 'admin'",
+  "updateRule": "@request.auth.role = 'admin'",
+  "deleteRule": "@request.auth.role = 'admin'"
+}

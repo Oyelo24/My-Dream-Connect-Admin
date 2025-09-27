@@ -1,0 +1,71 @@
+{
+  "id": "reports",
+  "name": "reports",
+  "type": "base",
+  "system": false,
+  "schema": [
+    {
+      "id": "title",
+      "name": "title",
+      "type": "text",
+      "system": false,
+      "required": true,
+      "options": {
+        "min": 3,
+        "max": 100,
+        "pattern": ""
+      }
+    },
+    {
+      "id": "type",
+      "name": "type",
+      "type": "select",
+      "system": false,
+      "required": true,
+      "options": {
+        "maxSelect": 1,
+        "values": ["attendance", "grades", "student_performance", "course_analytics", "system_usage"]
+      }
+    },
+    {
+      "id": "generatedBy",
+      "name": "generatedBy",
+      "type": "relation",
+      "system": false,
+      "required": true,
+      "options": {
+        "collectionId": "users",
+        "cascadeDelete": false,
+        "minSelect": null,
+        "maxSelect": 1,
+        "displayFields": ["firstName", "lastName", "email"]
+      }
+    },
+    {
+      "id": "filters",
+      "name": "filters",
+      "type": "json",
+      "system": false,
+      "required": true,
+      "options": {}
+    },
+    {
+      "id": "data",
+      "name": "data",
+      "type": "json",
+      "system": false,
+      "required": true,
+      "options": {}
+    }
+  ],
+  "indexes": [
+    "CREATE INDEX idx_reports_type ON reports (type)",
+    "CREATE INDEX idx_reports_generatedBy ON reports (generatedBy)",
+    "CREATE INDEX idx_reports_created ON reports (created)"
+  ],
+  "listRule": "@request.auth.role = 'admin'",
+  "viewRule": "@request.auth.role = 'admin'",
+  "createRule": "@request.auth.role = 'admin'",
+  "updateRule": "@request.auth.role = 'admin'",
+  "deleteRule": "@request.auth.role = 'admin'"
+}

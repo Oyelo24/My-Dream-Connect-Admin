@@ -1,0 +1,116 @@
+[
+    {
+        "id": "assessments_collection",
+        "name": "assessments",
+        "type": "base",
+        "system": false,
+        "fields": [
+            {
+                "id": "text_title",
+                "name": "title",
+                "type": "text",
+                "required": true,
+                "min": 3,
+                "max": 100,
+                "system": false,
+                "hidden": false,
+                "presentable": false
+            },
+            {
+                "id": "text_description",
+                "name": "description",
+                "type": "text",
+                "required": true,
+                "max": 500,
+                "system": false,
+                "hidden": false,
+                "presentable": false
+            },
+            {
+                "id": "relation_course",
+                "name": "courseId",
+                "type": "relation",
+                "required": true,
+                "collectionId": "courses_collection",
+                "maxSelect": 1,
+                "displayFields": ["courseCode", "courseName"],
+                "system": false,
+                "hidden": false,
+                "presentable": false
+            },
+            {
+                "id": "select_type",
+                "name": "type",
+                "type": "select",
+                "required": true,
+                "maxSelect": 1,
+                "values": ["quiz", "exam", "assignment", "project"],
+                "system": false,
+                "hidden": false,
+                "presentable": false
+            },
+            {
+                "id": "number_total_marks",
+                "name": "totalMarks",
+                "type": "number",
+                "required": true,
+                "min": 1,
+                "max": 100,
+                "system": false,
+                "hidden": false,
+                "presentable": false
+            },
+            {
+                "id": "date_due",
+                "name": "dueDate",
+                "type": "date",
+                "required": true,
+                "system": false,
+                "hidden": false,
+                "presentable": false
+            },
+            {
+                "id": "select_status",
+                "name": "status",
+                "type": "select",
+                "required": true,
+                "maxSelect": 1,
+                "values": ["draft", "published", "completed"],
+                "system": false,
+                "hidden": false,
+                "presentable": false
+            },
+            {
+                "id": "autodate_created",
+                "name": "created",
+                "type": "autodate",
+                "onCreate": true,
+                "onUpdate": false,
+                "system": false,
+                "hidden": false,
+                "presentable": false
+            },
+            {
+                "id": "autodate_updated",
+                "name": "updated",
+                "type": "autodate",
+                "onCreate": true,
+                "onUpdate": true,
+                "system": false,
+                "hidden": false,
+                "presentable": false
+            }
+        ],
+        "indexes": [
+            "CREATE INDEX `idx_courseId_assessments` ON `assessments` (`courseId`)",
+            "CREATE INDEX `idx_type_assessments` ON `assessments` (`type`)",
+            "CREATE INDEX `idx_status_assessments` ON `assessments` (`status`)",
+            "CREATE INDEX `idx_dueDate_assessments` ON `assessments` (`dueDate`)"
+        ],
+        "listRule": "@request.auth.id != ''",
+        "viewRule": "@request.auth.id != ''",
+        "createRule": "@request.auth.role = 'admin'",
+        "updateRule": "@request.auth.role = 'admin'",
+        "deleteRule": "@request.auth.role = 'admin'"
+    }
+]

@@ -1,0 +1,82 @@
+{
+  "id": "attendance",
+  "name": "attendance",
+  "type": "base",
+  "system": false,
+  "schema": [
+    {
+      "id": "studentId",
+      "name": "studentId",
+      "type": "relation",
+      "system": false,
+      "required": true,
+      "options": {
+        "collectionId": "students",
+        "cascadeDelete": true,
+        "minSelect": null,
+        "maxSelect": 1,
+        "displayFields": ["firstName", "lastName", "studentId"]
+      }
+    },
+    {
+      "id": "courseId",
+      "name": "courseId",
+      "type": "relation",
+      "system": false,
+      "required": true,
+      "options": {
+        "collectionId": "courses",
+        "cascadeDelete": true,
+        "minSelect": null,
+        "maxSelect": 1,
+        "displayFields": ["courseCode", "courseName"]
+      }
+    },
+    {
+      "id": "date",
+      "name": "date",
+      "type": "date",
+      "system": false,
+      "required": true,
+      "options": {
+        "min": "",
+        "max": ""
+      }
+    },
+    {
+      "id": "status",
+      "name": "status",
+      "type": "select",
+      "system": false,
+      "required": true,
+      "options": {
+        "maxSelect": 1,
+        "values": ["present", "absent", "late"]
+      }
+    },
+    {
+      "id": "remarks",
+      "name": "remarks",
+      "type": "text",
+      "system": false,
+      "required": false,
+      "options": {
+        "min": null,
+        "max": 200,
+        "pattern": ""
+      }
+    }
+  ],
+  "indexes": [
+    "CREATE UNIQUE INDEX idx_attendance_unique ON attendance (studentId, courseId, date)",
+    "CREATE INDEX idx_attendance_studentId ON attendance (studentId)",
+    "CREATE INDEX idx_attendance_courseId ON attendance (courseId)",
+    "CREATE INDEX idx_attendance_date ON attendance (date)",
+    "CREATE INDEX idx_attendance_status ON attendance (status)"
+  ],
+  "listRule": "@request.auth.id != '' && (@request.auth.role = 'admin' || studentId.userId = @request.auth.id)",
+  "viewRule": "@request.auth.id != '' && (@request.auth.role = 'admin' || studentId.userId = @request.auth.id)",
+  "createRule": "@request.auth.role = 'admin'",
+  "updateRule": "@request.auth.role = 'admin'",
+  "deleteRule": "@request.auth.role = 'admin'"
+}

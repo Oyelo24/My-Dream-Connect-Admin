@@ -1,32 +1,21 @@
-import 'package:flutter/foundation.dart';
+import '../services/environment_service.dart';
 
 class ConfigService {
-  // Environment configuration - Update these URLs with your actual PocketBase instance
-  static const String _devBaseUrl = 'http://127.0.0.1:8090';
-  static const String _prodBaseUrl =
-      'https://your-pocketbase-instance.com'; // TODO: Replace with your actual PocketBase URL
+  // Get base URL from environment service
+  static String get baseUrl => EnvironmentService.pocketbaseUrl;
 
-  // Collection names
-  static const String _adminCollection = 'admins';
-  static const String _usersCollection = 'users';
-  static const String _defaultCollection =
-      'admins'; // Default to admins collection for admin-only login
-
-  // Get base URL based on environment
-  static String get baseUrl {
-    if (kReleaseMode) {
-      return _prodBaseUrl;
-    }
-    return _devBaseUrl;
-  }
+  // Collection names from environment service
+  static String get adminCollection => EnvironmentService.adminCollection;
+  static String get usersCollection => EnvironmentService.userCollection;
+  static String get defaultCollection => EnvironmentService.adminCollection;
 
   // Get API base URL
   static String get apiBaseUrl => '$baseUrl/api';
 
   // Get collection URLs
-  static String get adminCollectionUrl => '$_adminCollection';
-  static String get usersCollectionUrl => '$_usersCollection';
-  static String get defaultCollectionUrl => '$_defaultCollection';
+  static String get adminCollectionUrl => adminCollection;
+  static String get usersCollectionUrl => usersCollection;
+  static String get defaultCollectionUrl => defaultCollection;
 
   // Auth endpoints
   static String getAuthWithPasswordUrl(String collection) =>
@@ -39,41 +28,40 @@ class ConfigService {
       '$apiBaseUrl/collections/$collection/auth-refresh';
 
   // Admin specific endpoints
-  static String get adminAuthUrl => getAuthWithPasswordUrl(_adminCollection);
+  static String get adminAuthUrl => getAuthWithPasswordUrl(adminCollection);
   static String get adminPasswordResetUrl =>
-      getRequestPasswordResetUrl(_adminCollection);
-  static String get adminRefreshUrl => getRefreshAuthUrl(_adminCollection);
+      getRequestPasswordResetUrl(adminCollection);
+  static String get adminRefreshUrl => getRefreshAuthUrl(adminCollection);
 
   // Users collection endpoints
-  static String get usersAuthUrl => getAuthWithPasswordUrl(_usersCollection);
+  static String get usersAuthUrl => getAuthWithPasswordUrl(usersCollection);
   static String get usersPasswordResetUrl =>
-      getRequestPasswordResetUrl(_usersCollection);
-  static String get usersRefreshUrl => getRefreshAuthUrl(_usersCollection);
+      getRequestPasswordResetUrl(usersCollection);
+  static String get usersRefreshUrl => getRefreshAuthUrl(usersCollection);
 
-  // Default collection endpoints (users)
+  // Default collection endpoints
   static String get defaultAuthUrl =>
-      getAuthWithPasswordUrl(_defaultCollection);
+      getAuthWithPasswordUrl(defaultCollection);
   static String get defaultPasswordResetUrl =>
-      getRequestPasswordResetUrl(_defaultCollection);
-  static String get defaultRefreshUrl => getRefreshAuthUrl(_defaultCollection);
+      getRequestPasswordResetUrl(defaultCollection);
+  static String get defaultRefreshUrl => getRefreshAuthUrl(defaultCollection);
 
   // Get collection URL by name
   static String getCollectionUrl(String collectionName) {
     switch (collectionName) {
       case 'admins':
-        return _adminCollection;
+        return adminCollection;
       case 'users':
-        return _usersCollection;
+        return usersCollection;
       default:
-        return _defaultCollection;
+        return defaultCollection;
     }
   }
 
   // Environment helpers
-  static bool get isDevelopment => !kReleaseMode;
-  static bool get isProduction => kReleaseMode;
+  static bool get isDevelopment => EnvironmentService.isDevelopment;
+  static bool get isProduction => EnvironmentService.isProduction;
 
   // Get current environment name
-  static String get environmentName =>
-      isProduction ? 'production' : 'development';
+  static String get environmentName => EnvironmentService.environmentName;
 }

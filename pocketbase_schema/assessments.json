@@ -1,0 +1,110 @@
+{
+  "id": "assessments",
+  "name": "assessments",
+  "type": "base",
+  "system": false,
+  "schema": [
+    {
+      "id": "title",
+      "name": "title",
+      "type": "text",
+      "system": false,
+      "required": true,
+      "options": {
+        "min": 3,
+        "max": 100,
+        "pattern": ""
+      }
+    },
+    {
+      "id": "description",
+      "name": "description",
+      "type": "editor",
+      "system": false,
+      "required": true,
+      "options": {
+        "convertUrls": false
+      }
+    },
+    {
+      "id": "courseId",
+      "name": "courseId",
+      "type": "relation",
+      "system": false,
+      "required": true,
+      "options": {
+        "collectionId": "courses",
+        "cascadeDelete": true,
+        "minSelect": null,
+        "maxSelect": 1,
+        "displayFields": ["courseCode", "courseName"]
+      }
+    },
+    {
+      "id": "type",
+      "name": "type",
+      "type": "select",
+      "system": false,
+      "required": true,
+      "options": {
+        "maxSelect": 1,
+        "values": ["quiz", "exam", "assignment", "project"]
+      }
+    },
+    {
+      "id": "totalMarks",
+      "name": "totalMarks",
+      "type": "number",
+      "system": false,
+      "required": true,
+      "options": {
+        "min": 1,
+        "max": 100
+      }
+    },
+    {
+      "id": "passingMarks",
+      "name": "passingMarks",
+      "type": "number",
+      "system": false,
+      "required": true,
+      "options": {
+        "min": 1,
+        "max": null
+      }
+    },
+    {
+      "id": "dueDate",
+      "name": "dueDate",
+      "type": "date",
+      "system": false,
+      "required": true,
+      "options": {
+        "min": "",
+        "max": ""
+      }
+    },
+    {
+      "id": "status",
+      "name": "status",
+      "type": "select",
+      "system": false,
+      "required": true,
+      "options": {
+        "maxSelect": 1,
+        "values": ["draft", "published", "completed"]
+      }
+    }
+  ],
+  "indexes": [
+    "CREATE INDEX idx_assessments_courseId ON assessments (courseId)",
+    "CREATE INDEX idx_assessments_type ON assessments (type)",
+    "CREATE INDEX idx_assessments_status ON assessments (status)",
+    "CREATE INDEX idx_assessments_dueDate ON assessments (dueDate)"
+  ],
+  "listRule": "@request.auth.id != ''",
+  "viewRule": "@request.auth.id != ''",
+  "createRule": "@request.auth.role = 'admin'",
+  "updateRule": "@request.auth.role = 'admin'",
+  "deleteRule": "@request.auth.role = 'admin'"
+}

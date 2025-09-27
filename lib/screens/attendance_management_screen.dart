@@ -15,7 +15,7 @@ class AttendanceManagementScreen extends StatefulWidget {
 
 class _AttendanceManagementScreenState
     extends State<AttendanceManagementScreen> {
-  String selectedDate = '12/10/2024';
+  String selectedDate = DateTime.now().toIso8601String().split('T')[0];
   String selectedSession = 'All Sessions';
 
   List<AttendanceRecord> attendanceRecords = [];
@@ -57,23 +57,29 @@ class _AttendanceManagementScreenState
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 8,
-                ),
-                decoration: BoxDecoration(
-                  color: AppColors.primary,
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: const Text(
-                  '80% Present Today',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
+              FutureBuilder<String>(
+                future: _getTodayAttendanceRate(),
+                builder: (context, snapshot) {
+                  final rate = snapshot.data ?? '0% Present Today';
+                  return Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 8,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppColors.primary,
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Text(
+                      rate,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  );
+                },
               ),
               ElevatedButton(
                 onPressed: () {},
@@ -161,18 +167,53 @@ class _AttendanceManagementScreenState
   }
 
   Widget _buildStatsCards() {
-    return Row(
-      children: [
-        _buildStatCard('5', 'Total Students', Colors.grey[100]!, Colors.black),
-        const SizedBox(width: 16),
-        _buildStatCard('2', 'Present', AppColors.success, Colors.white),
-        const SizedBox(width: 16),
-        _buildStatCard('1', 'Late', AppColors.warning, Colors.white),
-        const SizedBox(width: 16),
-        _buildStatCard('1', 'Absent', AppColors.error, Colors.white),
-        const SizedBox(width: 16),
-        _buildStatCard('1', 'Excused', Colors.grey[400]!, Colors.white),
-      ],
+    return FutureBuilder<Map<String, dynamic>>(
+      future: AttendanceService().getAttendanceStatistics(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        
+        final stats = snapshot.data ?? {};
+        return Row(
+          children: [
+            _buildStatCard(
+              stats['totalRecords']?.toString() ?? '0',
+              'Total Records',
+              Colors.grey[100]!,
+              Colors.black,
+            ),
+            const SizedBox(width: 16),
+            _buildStatCard(
+              stats['presentCount']?.toString() ?? '0',
+              'Present',
+              AppColors.success,
+              Colors.white,
+            ),
+            const SizedBox(width: 16),
+            _buildStatCard(
+              stats['lateCount']?.toString() ?? '0',
+              'Late',
+              AppColors.warning,
+              Colors.white,
+            ),
+            const SizedBox(width: 16),
+            _buildStatCard(
+              stats['absentCount']?.toString() ?? '0',
+              'Absent',
+              AppColors.error,
+              Colors.white,
+            ),
+            const SizedBox(width: 16),
+            _buildStatCard(
+              stats['excusedCount']?.toString() ?? '0',
+              'Excused',
+              Colors.grey[400]!,
+              Colors.white,
+            ),
+          ],
+        );
+      },
     );
   }
 
@@ -445,4 +486,16 @@ class _AttendanceManagementScreenState
     );
   }
 
-
+  Future<String> _getTodayAttendanceRate() async {
+    try {
+      final todayRecords = await AttendanceService().getTodayAttendance();
+      if (todayRecords.isEmpty) return '0% Present Today';
+      
+      final presentCount = todayRecords.where((r) => r.isPresent).length;
+      final rate = ((presentCount / todayRecords.length) * 100).round();
+      return '$rate% Present Today';
+    } catch (e) {
+      return '0% Present Today';
+    }
+  }
+}

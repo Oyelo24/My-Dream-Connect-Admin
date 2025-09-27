@@ -1,0 +1,62 @@
+{
+  "name": "users",
+  "type": "auth",
+  "schema": [
+    {
+      "name": "firstName",
+      "type": "text",
+      "required": true,
+      "options": {
+        "min": 2,
+        "max": 50
+      }
+    },
+    {
+      "name": "lastName",
+      "type": "text",
+      "required": true,
+      "options": {
+        "min": 2,
+        "max": 50
+      }
+    },
+    {
+      "name": "role",
+      "type": "select",
+      "required": true,
+      "options": {
+        "maxSelect": 1,
+        "values": ["admin", "student"]
+      }
+    },
+    {
+      "name": "profileImage",
+      "type": "file",
+      "required": false,
+      "options": {
+        "maxSelect": 1,
+        "maxSize": 5242880,
+        "mimeTypes": ["image/jpeg", "image/png", "image/webp"],
+        "thumbs": ["100x100"]
+      }
+    },
+    {
+      "name": "isActive",
+      "type": "bool",
+      "required": false
+    }
+  ],
+  "listRule": "@request.auth.id != '' && (@request.auth.role = 'admin' || @request.auth.id = id)",
+  "viewRule": "@request.auth.id != '' && (@request.auth.role = 'admin' || @request.auth.id = id)",
+  "createRule": "",
+  "updateRule": "@request.auth.id != '' && (@request.auth.role = 'admin' || @request.auth.id = id)",
+  "deleteRule": "@request.auth.role = 'admin'",
+  "options": {
+    "allowEmailAuth": true,
+    "allowOAuth2Auth": false,
+    "allowUsernameAuth": false,
+    "manageRule": "@request.auth.role = 'admin'",
+    "minPasswordLength": 8,
+    "requireEmail": true
+  }
+}

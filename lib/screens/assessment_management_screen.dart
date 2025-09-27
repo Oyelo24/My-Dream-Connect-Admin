@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../utils/app_colors.dart';
-import '../models/assessment.dart';
 import '../services/assessment_service.dart';
 
 class AssessmentManagementScreen extends StatefulWidget {
@@ -109,16 +108,42 @@ class _AssessmentManagementScreenState
   }
 
   Widget _buildStatsCards() {
-    return Row(
-      children: [
-        _buildStatCard('4', 'Total Assessments', AppColors.primary),
-        const SizedBox(width: 16),
-        _buildStatCard('1', 'Active', AppColors.success),
-        const SizedBox(width: 16),
-        _buildStatCard('1', 'Completed', AppColors.warning),
-        const SizedBox(width: 16),
-        _buildStatCard('1', 'Drafts', Colors.grey[400]!),
-      ],
+    return FutureBuilder<Map<String, dynamic>>(
+      future: AssessmentService().getAssessmentStatistics(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        
+        final stats = snapshot.data ?? {};
+        return Row(
+          children: [
+            _buildStatCard(
+              stats['totalAssessments']?.toString() ?? '0',
+              'Total Assessments',
+              AppColors.primary,
+            ),
+            const SizedBox(width: 16),
+            _buildStatCard(
+              stats['activeAssessments']?.toString() ?? '0',
+              'Active',
+              AppColors.success,
+            ),
+            const SizedBox(width: 16),
+            _buildStatCard(
+              stats['completedAssessments']?.toString() ?? '0',
+              'Completed',
+              AppColors.warning,
+            ),
+            const SizedBox(width: 16),
+            _buildStatCard(
+              stats['draftAssessments']?.toString() ?? '0',
+              'Drafts',
+              Colors.grey[400]!,
+            ),
+          ],
+        );
+      },
     );
   }
 

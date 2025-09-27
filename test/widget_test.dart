@@ -5,60 +5,31 @@
 // gestures. You can also use WidgetTester to find child widgets in the widget
 // tree, read text, and verify that the values of widget properties are correct.
 
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:provider/provider.dart';
 
 import 'package:mdc_admin/main.dart';
-import 'package:mdc_admin/viewmodels/auth_viewmodel.dart';
 
 void main() {
-  testWidgets('Login screen displays correctly', (WidgetTester tester) async {
+  testWidgets('App starts with role selector screen', (WidgetTester tester) async {
     // Build our app and trigger a frame.
-    await tester.pumpWidget(
-      ChangeNotifierProvider(
-        create: (_) => AuthViewModel(),
-        child: const MaterialApp(home: AdminApp()),
-      ),
-    );
+    await tester.pumpWidget(const MDCApp());
 
-    // Verify that the login screen shows the correct title
-    expect(find.text('MDC Admin Portal'), findsOneWidget);
-    expect(find.text('Sign in to access the dashboard'), findsOneWidget);
-
-    // Verify that email and password fields are present
-    expect(find.widgetWithText(TextField, 'Email'), findsOneWidget);
-    expect(find.widgetWithText(TextField, 'Password'), findsOneWidget);
-
-    // Verify that the user type dropdown is present
-    expect(find.text('Student Login'), findsOneWidget);
-    expect(find.text('Admin Login'), findsOneWidget);
-
-    // Verify that the login button is present
-    expect(find.text('Sign In'), findsOneWidget);
+    // Verify that the role selector screen is displayed
+    expect(find.text('Choose Your Role'), findsOneWidget);
+    expect(find.text('Admin Portal'), findsOneWidget);
+    expect(find.text('Student Portal'), findsOneWidget);
   });
 
-  testWidgets('User type selection works', (WidgetTester tester) async {
-    await tester.pumpWidget(
-      ChangeNotifierProvider(
-        create: (_) => AuthViewModel(),
-        child: const MaterialApp(home: AdminApp()),
-      ),
-    );
+  testWidgets('Role selection navigation works', (WidgetTester tester) async {
+    await tester.pumpWidget(const MDCApp());
 
-    // Initially shows "Student Login"
-    expect(find.text('Student Login'), findsOneWidget);
-
-    // Tap the dropdown to open it
-    await tester.tap(find.text('Student Login'));
+    // Tap on Admin Portal
+    await tester.tap(find.text('Admin Portal'));
     await tester.pumpAndSettle();
 
-    // Select "Admin Login"
-    await tester.tap(find.text('Admin Login').last);
-    await tester.pumpAndSettle();
-
-    // Verify the selection changed
-    expect(find.text('Admin Login'), findsOneWidget);
-    expect(find.text('Access Admin Dashboard'), findsOneWidget);
+    // Should navigate to login screen
+    expect(find.text('Sign in to access the dashboard'), findsOneWidget);
+    expect(find.text('Email'), findsOneWidget);
+    expect(find.text('Password'), findsOneWidget);
   });
 }

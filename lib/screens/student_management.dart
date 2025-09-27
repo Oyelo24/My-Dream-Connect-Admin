@@ -10,6 +10,8 @@ class StudentManagement extends StatefulWidget {
 }
 
 class _StudentManagementState extends State<StudentManagement> {
+  bool isLoading = true;
+  String? errorMessage;
   Widget _buildStudentRow(Student student) {
     Color statusColor;
     Color statusBgColor;
@@ -77,7 +79,10 @@ class _StudentManagementState extends State<StudentManagement> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(student.enrollmentDate, style: const TextStyle(fontSize: 12)),
+                Text(
+                  student.enrollmentDate,
+                  style: const TextStyle(fontSize: 12),
+                ),
                 Text(
                   student.lastSeen,
                   style: TextStyle(fontSize: 12, color: Colors.grey[600]),
@@ -87,69 +92,99 @@ class _StudentManagementState extends State<StudentManagement> {
           ),
           // Attendance
           Expanded(
-            child: Row(
-              children: [
-                Text(
-                  student.attendance,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: LinearProgressIndicator(
-                    value: double.tryParse(student.attendance.replaceAll('%', '')) != null
-                        ? double.parse(student.attendance.replaceAll('%', '')) / 100
-                        : 0.0,
-                    backgroundColor: Colors.grey[200],
-                    valueColor: AlwaysStoppedAnimation<Color>(
-                      double.tryParse(student.attendance.replaceAll('%', '')) != null && double.parse(student.attendance.replaceAll('%', '')) >= 90
-                          ? Colors.green
-                          : double.tryParse(student.attendance.replaceAll('%', '')) != null && double.parse(student.attendance.replaceAll('%', '')) >= 75
-                          ? Colors.orange
-                          : Colors.red,
+            child: Padding(
+              padding: const EdgeInsets.only(left: 5.0, right: 5.0),
+              child: Row(
+                children: [
+                  Text(
+                    student.attendance,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
-                ),
-              ],
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: LinearProgressIndicator(
+                      value:
+                          double.tryParse(
+                                student.attendance.replaceAll('%', ''),
+                              ) !=
+                              null
+                          ? double.parse(
+                                  student.attendance.replaceAll('%', ''),
+                                ) /
+                                100
+                          : 0.0,
+                      backgroundColor: Colors.grey[200],
+                      valueColor: AlwaysStoppedAnimation<Color>(
+                        double.tryParse(
+                                      student.attendance.replaceAll('%', ''),
+                                    ) !=
+                                    null &&
+                                double.parse(
+                                      student.attendance.replaceAll('%', ''),
+                                    ) >=
+                                    90
+                            ? Colors.green
+                            : double.tryParse(
+                                        student.attendance.replaceAll('%', ''),
+                                      ) !=
+                                      null &&
+                                  double.parse(
+                                        student.attendance.replaceAll('%', ''),
+                                      ) >=
+                                      75
+                            ? Colors.orange
+                            : Colors.red,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
           // Grade
           Expanded(
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(
-                color: _getGradeColor(student.grade).withOpacity(0.1),
-                borderRadius: BorderRadius.circular(4),
-              ),
-              child: Text(
-                student.grade,
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  color: _getGradeColor(student.grade),
+            child: Padding(
+              padding: const EdgeInsets.only(right: 5.0),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: _getGradeColor(student.grade).withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(4),
                 ),
-                textAlign: TextAlign.center,
+                child: Text(
+                  student.grade,
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: _getGradeColor(student.grade),
+                  ),
+                  textAlign: TextAlign.center,
+                ),
               ),
             ),
           ),
           // Status
           Expanded(
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(
-                color: statusBgColor,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Text(
-                student.status,
-                style: TextStyle(
-                  fontSize: 10,
-                  fontWeight: FontWeight.bold,
-                  color: statusColor,
+            child: Padding(
+              padding: const EdgeInsets.only(right: 5.0),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: statusBgColor,
+                  borderRadius: BorderRadius.circular(12),
                 ),
-                textAlign: TextAlign.center,
+                child: Text(
+                  student.status,
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                    color: statusColor,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
               ),
             ),
           ),
@@ -165,7 +200,9 @@ class _StudentManagementState extends State<StudentManagement> {
             width: 80,
             child: IconButton(
               icon: const Icon(Icons.visibility, size: 16),
-              onPressed: () {},
+              onPressed: () {
+                // Handle view action here
+              },
               tooltip: 'View',
             ),
           ),
@@ -180,7 +217,34 @@ class _StudentManagementState extends State<StudentManagement> {
     if (grade.startsWith('C')) return Colors.orange;
     return Colors.red;
   }
+
   List<Student> students = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchStudents();
+  }
+
+  Future<void> _fetchStudents() async {
+    setState(() {
+      isLoading = true;
+      errorMessage = null;
+    });
+    try {
+      final data = await StudentService().getAllStudents();
+      setState(() {
+        students = data;
+        isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        errorMessage = 'Failed to load students';
+        isLoading = false;
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Padding(
@@ -312,15 +376,20 @@ class _StudentManagementState extends State<StudentManagement> {
                     child: Builder(
                       builder: (context) {
                         if (this.isLoading) {
-                          return const Center(child: CircularProgressIndicator());
+                          return const Center(
+                            child: CircularProgressIndicator(),
+                          );
                         } else if (this.errorMessage != null) {
-                          return Center(child: Text('Error: ' + this.errorMessage!));
+                          return Center(
+                            child: Text('Error: ' + this.errorMessage!),
+                          );
                         } else if (this.students.isEmpty) {
                           return const Center(child: Text('No students found'));
                         } else {
                           return ListView.builder(
                             itemCount: this.students.length,
-                            itemBuilder: (context, index) => _buildStudentRow(this.students[index]),
+                            itemBuilder: (context, index) =>
+                                _buildStudentRow(this.students[index]),
                           );
                         }
                       },
@@ -334,3 +403,4 @@ class _StudentManagementState extends State<StudentManagement> {
       ),
     );
   }
+}

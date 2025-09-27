@@ -20,10 +20,7 @@ class AccessResponse {
           json['record']?['name'] ??
           json['record']?['username'] ??
           json['username'],
-      role:
-          json['record']?['role'] ??
-          json['role'] ??
-          'student', // Default to 'student' for users collection
+      role: json['record']?['role'] ?? 'student', // Extract role from record
       message: json['message'],
       userData: json['record']?.cast<String, dynamic>(),
     );

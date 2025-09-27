@@ -3,10 +3,11 @@ import 'dart:convert';
 import 'package:mdc_admin/models/attendance.dart';
 import 'package:mdc_admin/services/config_service.dart';
 import 'package:mdc_admin/services/storage_service.dart';
+import 'package:mdc_admin/services/environment_service.dart';
 
 class AttendanceService {
   // Collection name for attendance
-  static const String _collection = 'attendance';
+  static String get _collection => EnvironmentService.attendanceCollection;
 
   // Get auth token
   Future<String?> _getAuthToken() async {

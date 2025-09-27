@@ -1,0 +1,88 @@
+{
+  "id": "schedules",
+  "name": "schedules",
+  "type": "base",
+  "system": false,
+  "schema": [
+    {
+      "id": "courseId",
+      "name": "courseId",
+      "type": "relation",
+      "system": false,
+      "required": true,
+      "options": {
+        "collectionId": "courses",
+        "cascadeDelete": true,
+        "minSelect": null,
+        "maxSelect": 1,
+        "displayFields": ["courseCode", "courseName"]
+      }
+    },
+    {
+      "id": "dayOfWeek",
+      "name": "dayOfWeek",
+      "type": "select",
+      "system": false,
+      "required": true,
+      "options": {
+        "maxSelect": 1,
+        "values": ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"]
+      }
+    },
+    {
+      "id": "startTime",
+      "name": "startTime",
+      "type": "text",
+      "system": false,
+      "required": true,
+      "options": {
+        "min": 5,
+        "max": 5,
+        "pattern": "^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$"
+      }
+    },
+    {
+      "id": "endTime",
+      "name": "endTime",
+      "type": "text",
+      "system": false,
+      "required": true,
+      "options": {
+        "min": 5,
+        "max": 5,
+        "pattern": "^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$"
+      }
+    },
+    {
+      "id": "classroom",
+      "name": "classroom",
+      "type": "text",
+      "system": false,
+      "required": true,
+      "options": {
+        "min": 2,
+        "max": 20,
+        "pattern": ""
+      }
+    },
+    {
+      "id": "isActive",
+      "name": "isActive",
+      "type": "bool",
+      "system": false,
+      "required": false,
+      "options": {}
+    }
+  ],
+  "indexes": [
+    "CREATE INDEX idx_schedules_courseId ON schedules (courseId)",
+    "CREATE INDEX idx_schedules_day_time ON schedules (dayOfWeek, startTime)",
+    "CREATE UNIQUE INDEX idx_schedules_conflict ON schedules (classroom, dayOfWeek, startTime)",
+    "CREATE INDEX idx_schedules_isActive ON schedules (isActive)"
+  ],
+  "listRule": "@request.auth.id != ''",
+  "viewRule": "@request.auth.id != ''",
+  "createRule": "@request.auth.role = 'admin'",
+  "updateRule": "@request.auth.role = 'admin'",
+  "deleteRule": "@request.auth.role = 'admin'"
+}

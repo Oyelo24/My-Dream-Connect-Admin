@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../utils/app_colors.dart';
+import '../services/analytics_service.dart';
 
 class AnalyticsDashboardScreen extends StatefulWidget {
   const AnalyticsDashboardScreen({super.key});
@@ -107,8 +108,55 @@ class _AnalyticsDashboardScreenState extends State<AnalyticsDashboardScreen> {
   }
 
   Widget _buildStatsCards() {
-    // TODO: Replace with dynamic stats from backend
-    return const Center(child: Text('No stats data'));
+    return FutureBuilder<Map<String, dynamic>>(
+      future: _loadAnalyticsStats(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        
+        if (snapshot.hasError || !snapshot.hasData) {
+          return const Center(child: Text('Unable to load statistics'));
+        }
+        
+        final stats = snapshot.data!;
+        return Row(
+          children: [
+            _buildStatCard(
+              stats['totalStudents']?.toString() ?? '0',
+              'Total Students',
+              AppColors.primary,
+              '+${stats['studentGrowth'] ?? '0'}%',
+            ),
+            const SizedBox(width: 16),
+            _buildStatCard(
+              stats['averageAttendance']?.toString() ?? '0%',
+              'Avg Attendance',
+              AppColors.success,
+              '+${stats['attendanceChange'] ?? '0'}%',
+            ),
+            const SizedBox(width: 16),
+            _buildStatCard(
+              stats['completedAssessments']?.toString() ?? '0',
+              'Assessments',
+              AppColors.warning,
+              '+${stats['assessmentGrowth'] ?? '0'}%',
+            ),
+            const SizedBox(width: 16),
+            _buildStatCard(
+              stats['averageGrade']?.toString() ?? 'N/A',
+              'Avg Grade',
+              AppColors.secondary,
+              stats['gradeChange'] ?? '',
+            ),
+          ],
+        );
+      },
+    );
+  }
+  
+  Future<Map<String, dynamic>> _loadAnalyticsStats() async {
+    return await AnalyticsService().getAnalyticsData();
   }
 
   Widget _buildStatCard(String value, String label, Color color, String trend) {
@@ -152,8 +200,61 @@ class _AnalyticsDashboardScreenState extends State<AnalyticsDashboardScreen> {
   }
 
   Widget _buildPerformanceTrends() {
-    // TODO: Replace with dynamic performance trends from backend
-    return const Center(child: Text('No performance trends data'));
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Row(
+            children: [
+              Icon(Icons.trending_up, size: 16, color: AppColors.primary),
+              SizedBox(width: 8),
+              Text(
+                'Performance Trends',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Monthly performance analysis',
+            style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
+          ),
+          const SizedBox(height: 16),
+          FutureBuilder<List<Map<String, dynamic>>>(
+            future: _loadPerformanceTrends(),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Center(child: CircularProgressIndicator());
+              }
+              
+              if (snapshot.hasError || !snapshot.hasData || snapshot.data!.isEmpty) {
+                return const Center(child: Text('No performance data available'));
+              }
+              
+              return Column(
+                children: snapshot.data!.map((trend) => 
+                  _buildTrendItem(
+                    trend['month'] ?? '',
+                    trend['metric'] ?? '',
+                    (trend['value'] as num?)?.toDouble() ?? 0.0,
+                  )
+                ).toList(),
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+  
+  Future<List<Map<String, dynamic>>> _loadPerformanceTrends() async {
+    return await AnalyticsService().getPerformanceTrends();
   }
 
   Widget _buildTrendItem(String month, String metric, double value) {
@@ -226,11 +327,28 @@ class _AnalyticsDashboardScreenState extends State<AnalyticsDashboardScreen> {
             style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
           ),
           const SizedBox(height: 16),
-          _buildPerformerItem('Alex Johnson', 'JavaScript Assessment', '98%'),
-          _buildPerformerItem('Sarah Chen', 'React Components', '96%'),
-          _buildPerformerItem('Mike Rodriguez', 'HTML/CSS Mastery', '94%'),
-          _buildPerformerItem('Emma Thompson', 'Final Project', '92%'),
-          _buildPerformerItem('David Kim', 'Assessment completed', '90%'),
+          FutureBuilder<List<Map<String, String>>>(
+            future: _loadTopPerformers(),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Center(child: CircularProgressIndicator());
+              }
+              
+              if (snapshot.hasError || !snapshot.hasData || snapshot.data!.isEmpty) {
+                return const Center(child: Text('No performance data available'));
+              }
+              
+              return Column(
+                children: snapshot.data!.map((performer) => 
+                  _buildPerformerItem(
+                    performer['name'] ?? '',
+                    performer['assessment'] ?? '',
+                    performer['score'] ?? '',
+                  )
+                ).toList(),
+              );
+            },
+          ),
         ],
       ),
     );
@@ -292,8 +410,107 @@ class _AnalyticsDashboardScreenState extends State<AnalyticsDashboardScreen> {
   }
 
   Widget _buildWeeklyAttendance() {
-    // TODO: Replace with dynamic weekly attendance from backend
-    return const Center(child: Text('No weekly attendance data'));
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Row(
+            children: [
+              Icon(Icons.calendar_view_week, size: 16, color: AppColors.primary),
+              SizedBox(width: 8),
+              Text(
+                'Weekly Attendance',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Attendance patterns over the week',
+            style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
+          ),
+          const SizedBox(height: 16),
+          FutureBuilder<List<Map<String, dynamic>>>(
+            future: _loadWeeklyAttendance(),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Center(child: CircularProgressIndicator());
+              }
+              
+              if (snapshot.hasError || !snapshot.hasData || snapshot.data!.isEmpty) {
+                return const Center(child: Text('No attendance data available'));
+              }
+              
+              return Column(
+                children: snapshot.data!.map((day) => 
+                  _buildAttendanceDay(
+                    day['day'] ?? '',
+                    (day['percentage'] as num?)?.toDouble() ?? 0.0,
+                  )
+                ).toList(),
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+  
+  Widget _buildAttendanceDay(String day, double percentage) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        children: [
+          SizedBox(
+            width: 80,
+            child: Text(day, style: const TextStyle(fontSize: 12)),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text('Attendance', style: TextStyle(fontSize: 12)),
+                    Text(
+                      '${(percentage * 100).toInt()}%',
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                LinearProgressIndicator(
+                  value: percentage,
+                  backgroundColor: Colors.grey[200],
+                  valueColor: const AlwaysStoppedAnimation<Color>(
+                    AppColors.primary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+  
+  Future<List<Map<String, String>>> _loadTopPerformers() async {
+    return await AnalyticsService().getTopPerformers();
+  }
+  
+  Future<List<Map<String, dynamic>>> _loadWeeklyAttendance() async {
+    return await AnalyticsService().getWeeklyAttendance();
   }
 
   Widget _buildAttendanceBar(String day, double value) {
@@ -329,11 +546,80 @@ class _AnalyticsDashboardScreenState extends State<AnalyticsDashboardScreen> {
   }
 
   Widget _buildSubjectPerformance() {
-    // TODO: Replace with dynamic subject performance from backend
-    return const Center(child: Text('No subject performance data'));
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Row(
+            children: [
+              Icon(Icons.subject, size: 16, color: AppColors.primary),
+              SizedBox(width: 8),
+              Text(
+                'Subject Performance',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Performance by subject area',
+            style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
+          ),
+          const SizedBox(height: 16),
+          FutureBuilder<List<Map<String, dynamic>>>(
+            future: AnalyticsService().getSubjectPerformance(),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Center(child: CircularProgressIndicator());
+              }
+              
+              if (snapshot.hasError || !snapshot.hasData || snapshot.data!.isEmpty) {
+                return const Center(child: Text('No subject data available'));
+              }
+              
+              return Column(
+                children: snapshot.data!.map((subject) => 
+                  _buildSubjectItem(
+                    subject['name'] ?? '',
+                    (subject['score'] as num?)?.toDouble() ?? 0.0,
+                  )
+                ).toList(),
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+  
+  Widget _buildSubjectItem(String subject, double score) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(subject, style: const TextStyle(fontSize: 12)),
+          ),
+          const SizedBox(width: 16),
+          Text(
+            '${(score * 100).toInt()}%',
+            style: const TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
-  Widget _buildSubjectItem(String subject, double value, String percentage) {
+  Widget _buildSubjectItemWithProgress(String subject, double value, String percentage) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: Column(
@@ -378,7 +664,7 @@ class _AnalyticsDashboardScreenState extends State<AnalyticsDashboardScreen> {
         children: [
           const Row(
             children: [
-              Icon(Icons.support_agent, size: 16, color: AppColors.warning),
+              Icon(Icons.warning, size: 16, color: AppColors.warning),
               SizedBox(width: 8),
               Text(
                 'Students Needing Support',
@@ -388,34 +674,40 @@ class _AnalyticsDashboardScreenState extends State<AnalyticsDashboardScreen> {
           ),
           const SizedBox(height: 4),
           Text(
-            'Students requiring additional assistance',
+            'Students requiring attention',
             style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
           ),
           const SizedBox(height: 16),
-          _buildSupportItem('Jordan Smith', 'Low attendance - 65%', 'HIGH'),
-          _buildSupportItem(
-            'Taylor Brown',
-            'Failing assessments - 45%',
-            'HIGH',
+          FutureBuilder<List<Map<String, String>>>(
+            future: AnalyticsService().getStudentsNeedingSupport(),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Center(child: CircularProgressIndicator());
+              }
+              
+              if (snapshot.hasError || !snapshot.hasData || snapshot.data!.isEmpty) {
+                return const Center(child: Text('No students need support'));
+              }
+              
+              return Column(
+                children: snapshot.data!.map((student) => 
+                  _buildSupportItem(
+                    student['name'] ?? '',
+                    student['reason'] ?? '',
+                    student['metric'] ?? '',
+                  )
+                ).toList(),
+              );
+            },
           ),
-          _buildSupportItem(
-            'Casey Wilson',
-            'Missing assignments - 3',
-            'MEDIUM',
-          ),
-          _buildSupportItem('Riley Davis', 'Below average - 68%', 'MEDIUM'),
         ],
       ),
     );
   }
-
-  Widget _buildSupportItem(String name, String issue, String priority) {
-    Color priorityColor = priority == 'HIGH'
-        ? AppColors.error
-        : AppColors.warning;
-
+  
+  Widget _buildSupportItem(String name, String reason, String metric) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
+      padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
         children: [
           Expanded(
@@ -425,33 +717,25 @@ class _AnalyticsDashboardScreenState extends State<AnalyticsDashboardScreen> {
                 Text(
                   name,
                   style: const TextStyle(
-                    fontSize: 14,
+                    fontSize: 12,
                     fontWeight: FontWeight.w500,
                   ),
                 ),
                 Text(
-                  issue,
+                  reason,
                   style: TextStyle(
-                    fontSize: 12,
+                    fontSize: 10,
                     color: AppColors.textSecondary,
                   ),
                 ),
               ],
             ),
           ),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-            decoration: BoxDecoration(
-              color: priorityColor,
-              borderRadius: BorderRadius.circular(4),
-            ),
-            child: Text(
-              priority,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 10,
-                fontWeight: FontWeight.bold,
-              ),
+          Text(
+            metric,
+            style: const TextStyle(
+              fontSize: 10,
+              fontWeight: FontWeight.w500,
             ),
           ),
         ],

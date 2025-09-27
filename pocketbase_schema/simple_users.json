@@ -1,0 +1,39 @@
+{
+  "name": "users",
+  "type": "auth",
+  "schema": [
+    {
+      "name": "firstName",
+      "type": "text",
+      "required": true,
+      "options": {
+        "min": 2,
+        "max": 50
+      }
+    },
+    {
+      "name": "lastName", 
+      "type": "text",
+      "required": true,
+      "options": {
+        "min": 2,
+        "max": 50
+      }
+    },
+    {
+      "name": "role",
+      "type": "select",
+      "required": true,
+      "options": {
+        "maxSelect": 1,
+        "values": ["admin", "student"]
+      }
+    }
+  ],
+  "options": {
+    "allowEmailAuth": true,
+    "allowUsernameAuth": false,
+    "minPasswordLength": 8,
+    "requireEmail": true
+  }
+}

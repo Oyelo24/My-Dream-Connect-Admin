@@ -1,0 +1,84 @@
+{
+  "id": "courses",
+  "name": "courses",
+  "type": "base",
+  "system": false,
+  "schema": [
+    {
+      "id": "courseCode",
+      "name": "courseCode",
+      "type": "text",
+      "system": false,
+      "required": true,
+      "options": {
+        "min": 6,
+        "max": 6,
+        "pattern": "^[A-Z]{3}[0-9]{3}$"
+      }
+    },
+    {
+      "id": "courseName",
+      "name": "courseName",
+      "type": "text",
+      "system": false,
+      "required": true,
+      "options": {
+        "min": 3,
+        "max": 100,
+        "pattern": ""
+      }
+    },
+    {
+      "id": "description",
+      "name": "description",
+      "type": "editor",
+      "system": false,
+      "required": true,
+      "options": {
+        "convertUrls": false
+      }
+    },
+    {
+      "id": "credits",
+      "name": "credits",
+      "type": "number",
+      "system": false,
+      "required": true,
+      "options": {
+        "min": 1,
+        "max": 6
+      }
+    },
+    {
+      "id": "duration",
+      "name": "duration",
+      "type": "select",
+      "system": false,
+      "required": true,
+      "options": {
+        "maxSelect": 1,
+        "values": ["1 semester", "2 semesters", "1 year", "2 years"]
+      }
+    },
+    {
+      "id": "status",
+      "name": "status",
+      "type": "select",
+      "system": false,
+      "required": true,
+      "options": {
+        "maxSelect": 1,
+        "values": ["active", "inactive"]
+      }
+    }
+  ],
+  "indexes": [
+    "CREATE UNIQUE INDEX idx_courses_courseCode ON courses (courseCode)",
+    "CREATE INDEX idx_courses_status ON courses (status)"
+  ],
+  "listRule": "@request.auth.id != ''",
+  "viewRule": "@request.auth.id != ''",
+  "createRule": "@request.auth.role = 'admin'",
+  "updateRule": "@request.auth.role = 'admin'",
+  "deleteRule": "@request.auth.role = 'admin'"
+}

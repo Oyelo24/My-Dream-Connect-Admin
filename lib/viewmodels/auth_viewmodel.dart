@@ -2,17 +2,22 @@ import 'package:flutter/material.dart';
 import '../models/login_request.dart';
 import '../models/signup_request.dart';
 import '../services/auth_service.dart';
+import '../models/user_role.dart';
 
 class AuthViewModel extends ChangeNotifier {
   final AuthService _authService = AuthService();
 
   bool _isLoading = false;
   String? _errorMessage;
-  String _userType = 'admins'; // Admin only login
+  String _userType = 'users'; // Support both admin and student login
+  UserRole? _currentUserRole;
 
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
   String get userType => _userType;
+  UserRole? get currentUserRole => _currentUserRole;
+  bool get isAdmin => _currentUserRole == UserRole.admin;
+  bool get isStudent => _currentUserRole == UserRole.student;
 
   // Initialize auth service with user type
   void setUserType(String type) {
@@ -96,9 +101,7 @@ class AuthViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<bool> get isAdmin async {
-    return await _authService.isAdmin;
-  }
+
 
   void clearError() {
     _errorMessage = null;

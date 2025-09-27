@@ -1,0 +1,105 @@
+[
+    {
+        "id": "students_collection",
+        "name": "students",
+        "type": "base",
+        "system": false,
+        "fields": [
+            {
+                "id": "text_student_id",
+                "name": "studentId",
+                "type": "text",
+                "required": true,
+                "pattern": "^STU[0-9]{6}$",
+                "min": 9,
+                "max": 9,
+                "system": false,
+                "hidden": false,
+                "presentable": false
+            },
+            {
+                "id": "text_first_name",
+                "name": "firstName",
+                "type": "text",
+                "required": true,
+                "min": 2,
+                "max": 50,
+                "system": false,
+                "hidden": false,
+                "presentable": false
+            },
+            {
+                "id": "text_last_name",
+                "name": "lastName",
+                "type": "text",
+                "required": true,
+                "min": 2,
+                "max": 50,
+                "system": false,
+                "hidden": false,
+                "presentable": false
+            },
+            {
+                "id": "email_student",
+                "name": "email",
+                "type": "email",
+                "required": true,
+                "system": false,
+                "hidden": false,
+                "presentable": false
+            },
+            {
+                "id": "text_phone",
+                "name": "phone",
+                "type": "text",
+                "required": true,
+                "min": 10,
+                "max": 15,
+                "system": false,
+                "hidden": false,
+                "presentable": false
+            },
+            {
+                "id": "select_status",
+                "name": "status",
+                "type": "select",
+                "required": true,
+                "maxSelect": 1,
+                "values": ["active", "inactive", "graduated"],
+                "system": false,
+                "hidden": false,
+                "presentable": false
+            },
+            {
+                "id": "autodate_created",
+                "name": "created",
+                "type": "autodate",
+                "onCreate": true,
+                "onUpdate": false,
+                "system": false,
+                "hidden": false,
+                "presentable": false
+            },
+            {
+                "id": "autodate_updated",
+                "name": "updated",
+                "type": "autodate",
+                "onCreate": true,
+                "onUpdate": true,
+                "system": false,
+                "hidden": false,
+                "presentable": false
+            }
+        ],
+        "indexes": [
+            "CREATE UNIQUE INDEX `idx_studentId_students` ON `students` (`studentId`)",
+            "CREATE UNIQUE INDEX `idx_email_students` ON `students` (`email`)",
+            "CREATE INDEX `idx_status_students` ON `students` (`status`)"
+        ],
+        "listRule": "@request.auth.id != ''",
+        "viewRule": "@request.auth.id != ''",
+        "createRule": "@request.auth.role = 'admin'",
+        "updateRule": "@request.auth.role = 'admin'",
+        "deleteRule": "@request.auth.role = 'admin'"
+    }
+]

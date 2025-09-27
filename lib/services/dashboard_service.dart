@@ -1,24 +1,23 @@
 import 'package:flutter/material.dart';
+import 'package:mdc_admin/models/attendance.dart';
 import 'student_service.dart';
 import 'attendance_service.dart';
 import 'assessment_service.dart';
+import 'environment_service.dart';
 
 class DashboardService {
-  // App Configuration
-  static const Map<String, String> _defaultAppConfig = {
-    'appName': 'MDC Admin',
-    'appSubtitle': 'Admin Panel',
-    'initials': 'M',
-  };
-
   // Initialize services
   static final StudentService _studentService = StudentService();
   static final AttendanceService _attendanceService = AttendanceService();
   static final AssessmentService _assessmentService = AssessmentService();
 
-  // Get app configuration
+  // Get app configuration from environment
   static Map<String, String> getAppConfig() {
-    return _defaultAppConfig;
+    return {
+      'appName': EnvironmentService.appName,
+      'appSubtitle': EnvironmentService.appSubtitle,
+      'initials': EnvironmentService.appInitials,
+    };
   }
 
   // Get statistics data from real services
@@ -34,22 +33,22 @@ class DashboardService {
       return {
         'totalStudents': {
           'value': studentStats['totalStudents'] ?? '0',
-          'change': '+5%', // This could be calculated from historical data
+          'change': _calculateTrend(studentStats['totalStudents'] ?? '0'),
           'color': 0xFF4A90E2,
         },
         'activeStudents': {
           'value': studentStats['activeStudents'] ?? '0',
-          'change': '+3%',
+          'change': _calculateTrend(studentStats['activeStudents'] ?? '0'),
           'color': 0xFF4CAF50,
         },
         'totalAssessments': {
           'value': assessmentStats['totalAssessments'] ?? '0',
-          'change': '+2%',
+          'change': _calculateTrend(assessmentStats['totalAssessments'] ?? '0'),
           'color': 0xFFFF9800,
         },
         'attendanceRate': {
           'value': attendanceStats['overallAttendance'] ?? '0%',
-          'change': '+1.2%',
+          'change': _calculateTrend(attendanceStats['overallAttendance'] ?? '0%'),
           'color': 0xFF2C3E50,
         },
       };
@@ -79,9 +78,9 @@ class DashboardService {
       for (var student in recentStudents) {
         activities.add({
           'name': student.name,
-          'action': 'enrolled in bootcamp',
-          'time': '2 hours ago',
-          'score': student.grade != 'N/A' ? '${student.grade}' : '',
+          'action': 'enrolled in program',
+          'time': _getRelativeTime(student.enrollmentDate),
+          'score': student.grade != 'N/A' ? student.grade : '',
         });
       }
 
@@ -91,8 +90,8 @@ class DashboardService {
         activities.add({
           'name': record.studentName,
           'action': 'checked in for ${record.session}',
-          'time': '1 hour ago',
-          'score': record.isPresent ? 'Present' : 'Absent',
+          'time': _getRelativeTime(record.date),
+          'score': record.status.displayName,
         });
       }
 
@@ -160,7 +159,7 @@ class DashboardService {
       return upcomingAssessments.map((assessment) {
         return {
           'title': assessment.title,
-          'date': 'Next week', // This could be calculated from actual dates
+          'date': _getScheduledDate(assessment.createdDate),
           'students': '${assessment.totalStudents} students',
         };
       }).toList();
@@ -185,7 +184,7 @@ class DashboardService {
                   ) ??
                   0.0
             : 0.0,
-        'averageGrade': '85%', // This could be calculated from actual grades
+        'averageGrade': _calculateAverageGrade(assessmentStats)
       };
     } catch (e) {
       print('Error fetching assessment progress: $e');
@@ -195,7 +194,7 @@ class DashboardService {
 
   // Get menu items
   static List<String> getMenuItems() {
-    return ['Dashboard', 'Students', 'Attendance', 'Assessments', 'Analytics'];
+    return ['Dashboard', 'Students', 'Attendance', 'Assessments', 'Analytics', 'Tracks', 'Instructors', 'Settings'];
   }
 
   // Get menu icons
@@ -211,6 +210,12 @@ class DashboardService {
         return Icons.assignment;
       case 4:
         return Icons.analytics;
+      case 5:
+        return Icons.track_changes;
+      case 6:
+        return Icons.school;
+      case 7:
+        return Icons.settings;
       default:
         return Icons.dashboard;
     }
@@ -229,6 +234,12 @@ class DashboardService {
         return 'Assessments Management';
       case 4:
         return 'Analytics';
+      case 5:
+        return 'Track Management';
+      case 6:
+        return 'Instructor Management';
+      case 7:
+        return 'Settings';
       default:
         return 'Dashboard Overview';
     }
@@ -238,7 +249,7 @@ class DashboardService {
   static String getPageSubtitle(int index) {
     switch (index) {
       case 0:
-        return 'Monitor your bootcamp performance and manage student progress';
+        return 'Monitor your tech cohort performance and manage student progress';
       case 1:
         return 'View and manage all enrolled students';
       case 2:
@@ -247,8 +258,14 @@ class DashboardService {
         return 'Create and manage student assessments';
       case 4:
         return 'View detailed analytics and reports';
+      case 5:
+        return 'Manage tech tracks and curriculum';
+      case 6:
+        return 'Manage instructors and assignments';
+      case 7:
+        return 'Configure system settings and preferences';
       default:
-        return 'Monitor your bootcamp performance and manage student progress';
+        return 'Monitor your tech cohort performance and manage student progress';
     }
   }
 
@@ -261,5 +278,60 @@ class DashboardService {
       'warning': const Color(0xFFFF9800),
       'danger': const Color(0xFFF44336),
     };
+  }
+
+  // Helper method to calculate trend (placeholder for now)
+  static String _calculateTrend(String currentValue) {
+    // In a real implementation, this would compare with historical data
+    // For now, return empty string to indicate no trend data
+    return '';
+  }
+
+  // Helper method to get relative time
+  static String _getRelativeTime(String dateString) {
+    try {
+      final date = DateTime.parse(dateString);
+      final now = DateTime.now();
+      final difference = now.difference(date);
+
+      if (difference.inDays > 0) {
+        return '${difference.inDays} day${difference.inDays == 1 ? '' : 's'} ago';
+      } else if (difference.inHours > 0) {
+        return '${difference.inHours} hour${difference.inHours == 1 ? '' : 's'} ago';
+      } else if (difference.inMinutes > 0) {
+        return '${difference.inMinutes} minute${difference.inMinutes == 1 ? '' : 's'} ago';
+      } else {
+        return 'Just now';
+      }
+    } catch (e) {
+      return 'Recently';
+    }
+  }
+
+  // Helper method to calculate average grade
+  static String _calculateAverageGrade(Map<String, dynamic> assessmentStats) {
+    // In a real implementation, this would calculate from actual grade data
+    // For now, return N/A to indicate no grade data available
+    return 'N/A';
+  }
+
+  // Helper method to get scheduled date
+  static String _getScheduledDate(String createdDate) {
+    try {
+      final created = DateTime.parse(createdDate);
+      final scheduled = created.add(const Duration(days: 7));
+      final now = DateTime.now();
+      final difference = scheduled.difference(now);
+
+      if (difference.inDays > 0) {
+        return 'In ${difference.inDays} day${difference.inDays == 1 ? '' : 's'}';
+      } else if (difference.inDays == 0) {
+        return 'Today';
+      } else {
+        return 'Overdue';
+      }
+    } catch (e) {
+      return 'TBD';
+    }
   }
 }

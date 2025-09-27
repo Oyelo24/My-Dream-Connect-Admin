@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
 import '../services/dashboard_service.dart';
+import '../services/track_service.dart';
+import '../models/track.dart';
 import 'student_management.dart';
 import 'attendance_management_screen.dart';
 import 'assessment_management_screen.dart';
 import 'analytics_dashboard_screen.dart';
+
+import 'settings_screen.dart';
 
 class AdminDashboard extends StatefulWidget {
   const AdminDashboard({super.key});
@@ -23,7 +27,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
   late List<Map<String, String>> _urgentTasks;
   late List<Map<String, String>> _upcomingAssessments;
   late Map<String, dynamic> _assessmentProgress;
-  late Map<String, Color> _themeColors;
+  Map<String, Color> _themeColors = DashboardService.getThemeColors();
 
   @override
   void initState() {
@@ -287,6 +291,12 @@ class _AdminDashboardState extends State<AdminDashboard> {
         return _buildAssessmentContent();
       case 4:
         return _buildAnalyticsContent();
+      case 5:
+        return _buildTrackManagementContent();
+      case 6:
+        return _buildInstructorManagementContent();
+      case 7:
+        return const SettingsScreen();
       default:
         return _buildDashboardContent();
     }
@@ -899,6 +909,125 @@ class _AdminDashboardState extends State<AdminDashboard> {
     return const AnalyticsDashboardScreen();
   }
 
+  Widget _buildTrackManagementContent() {
+    final tracks = TrackService.getTechTracks();
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isMobile = screenWidth < 768;
+    
+    return Container(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Tech Tracks',
+                    style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Manage available tech tracks and curriculum',
+                    style: TextStyle(color: Colors.grey[600]),
+                  ),
+                ],
+              ),
+              if (!isMobile)
+                ElevatedButton.icon(
+                  onPressed: () {},
+                  icon: const Icon(Icons.add, size: 16),
+                  label: const Text('Add Track'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: _themeColors['primary'],
+                    foregroundColor: Colors.white,
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: 24),
+          Expanded(
+            child: isMobile
+                ? ListView.builder(
+                    itemCount: tracks.length,
+                    itemBuilder: (context, index) {
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 16),
+                        child: _buildTrackCard(tracks[index]),
+                      );
+                    },
+                  )
+                : GridView.builder(
+                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 2,
+                      crossAxisSpacing: 16,
+                      mainAxisSpacing: 16,
+                      childAspectRatio: 1.5,
+                    ),
+                    itemCount: tracks.length,
+                    itemBuilder: (context, index) {
+                      return _buildTrackCard(tracks[index]);
+                    },
+                  ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInstructorManagementContent() {
+    return Container(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Instructors',
+            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Manage instructors and their assignments',
+            style: TextStyle(color: Colors.grey[600]),
+          ),
+          const SizedBox(height: 24),
+          Expanded(
+            child: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.school,
+                    size: 64,
+                    color: Colors.grey[400],
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Instructor Management',
+                    style: TextStyle(
+                      fontSize: 18,
+                      color: Colors.grey[600],
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Instructor management will be implemented based on your requirements',
+                    style: TextStyle(color: Colors.grey[500]),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildDrawer() {
     return Drawer(
       child: Container(
@@ -979,6 +1108,102 @@ class _AdminDashboardState extends State<AdminDashboard> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildTrackCard(Track track) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey[200]!),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.1),
+            spreadRadius: 1,
+            blurRadius: 4,
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Text(
+                track.icon,
+                style: const TextStyle(fontSize: 32),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      track.name,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    Text(
+                      '${track.duration} weeks',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey[600],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 8,
+                  vertical: 4,
+                ),
+                decoration: BoxDecoration(
+                  color: track.isActive ? Colors.green[100] : Colors.grey[100],
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  track.isActive ? 'Active' : 'Inactive',
+                  style: TextStyle(
+                    fontSize: 10,
+                    color: track.isActive ? Colors.green[700] : Colors.grey[600],
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(
+            track.description,
+            style: TextStyle(
+              fontSize: 14,
+              color: Colors.grey[600],
+            ),
+          ),
+          const SizedBox(height: 16),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                '${track.enrolledStudents} students',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Colors.grey[600],
+                ),
+              ),
+              TextButton(
+                onPressed: () {},
+                child: const Text('Manage'),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }

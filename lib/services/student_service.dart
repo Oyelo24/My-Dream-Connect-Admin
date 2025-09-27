@@ -3,10 +3,12 @@ import 'dart:convert';
 import 'package:mdc_admin/models/student.dart';
 import 'package:mdc_admin/services/config_service.dart';
 import 'package:mdc_admin/services/storage_service.dart';
+import 'package:mdc_admin/services/environment_service.dart';
+import 'package:mdc_admin/services/id_generator_service.dart';
 
 class StudentService {
   // Collection name for students
-  static const String _collection = 'users';
+  static String get _collection => EnvironmentService.userCollection;
 
   // Get auth token
   Future<String?> _getAuthToken() async {
@@ -114,7 +116,9 @@ class StudentService {
       final token = await _getAuthToken();
       if (token == null) return null;
 
+      final studentId = IdGeneratorService.generateStudentId();
       final data = {
+        'id': studentId,
         'name': name,
         'email': email,
         'phone': phone,

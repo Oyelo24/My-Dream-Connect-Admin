@@ -3,10 +3,11 @@ import 'dart:convert';
 import 'package:mdc_admin/models/assessment.dart';
 import 'package:mdc_admin/services/config_service.dart';
 import 'package:mdc_admin/services/storage_service.dart';
+import 'package:mdc_admin/services/environment_service.dart';
 
 class AssessmentService {
   // Collection name for assessments
-  static const String _collection = 'assessments';
+  static String get _collection => EnvironmentService.assessmentCollection;
 
   // Get auth token
   Future<String?> _getAuthToken() async {

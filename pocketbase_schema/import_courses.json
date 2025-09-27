@@ -1,0 +1,94 @@
+[
+    {
+        "id": "courses_collection",
+        "name": "courses",
+        "type": "base",
+        "system": false,
+        "fields": [
+            {
+                "id": "text_course_code",
+                "name": "courseCode",
+                "type": "text",
+                "required": true,
+                "pattern": "^[A-Z]{3}[0-9]{3}$",
+                "min": 6,
+                "max": 6,
+                "system": false,
+                "hidden": false,
+                "presentable": false
+            },
+            {
+                "id": "text_course_name",
+                "name": "courseName",
+                "type": "text",
+                "required": true,
+                "min": 3,
+                "max": 100,
+                "system": false,
+                "hidden": false,
+                "presentable": false
+            },
+            {
+                "id": "text_description",
+                "name": "description",
+                "type": "text",
+                "required": true,
+                "max": 500,
+                "system": false,
+                "hidden": false,
+                "presentable": false
+            },
+            {
+                "id": "number_credits",
+                "name": "credits",
+                "type": "number",
+                "required": true,
+                "min": 1,
+                "max": 6,
+                "system": false,
+                "hidden": false,
+                "presentable": false
+            },
+            {
+                "id": "select_status",
+                "name": "status",
+                "type": "select",
+                "required": true,
+                "maxSelect": 1,
+                "values": ["active", "inactive"],
+                "system": false,
+                "hidden": false,
+                "presentable": false
+            },
+            {
+                "id": "autodate_created",
+                "name": "created",
+                "type": "autodate",
+                "onCreate": true,
+                "onUpdate": false,
+                "system": false,
+                "hidden": false,
+                "presentable": false
+            },
+            {
+                "id": "autodate_updated",
+                "name": "updated",
+                "type": "autodate",
+                "onCreate": true,
+                "onUpdate": true,
+                "system": false,
+                "hidden": false,
+                "presentable": false
+            }
+        ],
+        "indexes": [
+            "CREATE UNIQUE INDEX `idx_courseCode_courses` ON `courses` (`courseCode`)",
+            "CREATE INDEX `idx_status_courses` ON `courses` (`status`)"
+        ],
+        "listRule": "@request.auth.id != ''",
+        "viewRule": "@request.auth.id != ''",
+        "createRule": "@request.auth.role = 'admin'",
+        "updateRule": "@request.auth.role = 'admin'",
+        "deleteRule": "@request.auth.role = 'admin'"
+    }
+]

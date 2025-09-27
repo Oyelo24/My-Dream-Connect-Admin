@@ -7,16 +7,16 @@ import 'storage_service.dart';
 import 'config_service.dart';
 
 class AuthService {
-  // Default to admins collection for admin-only login
-  String _collectionName = ConfigService.getCollectionUrl('admins');
+  // Default to users collection for authentication
+  String _collectionName = ConfigService.getCollectionUrl('users');
 
   // Set collection for authentication (admin/users)
   void setCollection(String collectionName) {
     _collectionName = ConfigService.getCollectionUrl(collectionName);
   }
 
-  // Initialize auth service with collection type (defaults to admins)
-  void initializeAuth({String collectionName = 'admins'}) {
+  // Initialize auth service with collection type (defaults to users)
+  void initializeAuth({String collectionName = 'users'}) {
     _collectionName = ConfigService.getCollectionUrl(collectionName);
   }
 
@@ -85,9 +85,10 @@ class AuthService {
     if (response.token != null) {
       await StorageService.saveAuthToken(response.token!);
     }
-    if (response.username != null && response.role != null) {
-      await StorageService.saveUserData(response.username!, response.role!);
-    }
+    // Save user data with proper role extraction
+    final username = response.username ?? response.userData?['firstName'] ?? 'User';
+    final role = response.role ?? response.userData?['role'] ?? 'student';
+    await StorageService.saveUserData(username, role);
   }
 
   Future<bool> validateToken() async {
@@ -139,5 +140,10 @@ class AuthService {
   Future<bool> get isAdmin async {
     final role = await StorageService.getRole();
     return role == 'admin';
+  }
+
+  // Get current user role
+  Future<String?> getCurrentUserRole() async {
+    return await StorageService.getRole();
   }
 }

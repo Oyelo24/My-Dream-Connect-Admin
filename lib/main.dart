@@ -4,29 +4,31 @@ import 'package:provider/provider.dart';
 import 'utils/app_theme.dart';
 import 'utils/app_routes.dart';
 import 'viewmodels/auth_viewmodel.dart';
+import 'services/environment_service.dart';
+import 'viewmodels/dashboard_viewmodel.dart';
+import 'viewmodels/student_dashboard_viewmodel.dart';
 
-void main() {
-  runApp(const AdminApp());
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await EnvironmentService.initialize();
+  runApp(const MDCApp());
 }
 
-class AdminApp extends StatelessWidget {
-  const AdminApp({super.key});
+class MDCApp extends StatelessWidget {
+  const MDCApp({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider(
-      create: (_) {
-        // Initialize auth service with users collection (shared for admins and students)
-        final authViewModel = AuthViewModel();
-        authViewModel.setUserType(
-          'users',
-        ); // Use users collection for all logins
-        return authViewModel;
-      },
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => AuthViewModel()),
+        ChangeNotifierProvider(create: (_) => DashboardViewModelAdmin()),
+        ChangeNotifierProvider(create: (_) => StudentDashboardViewModel()),
+      ],
       child: MaterialApp(
-        title: 'MDC Admin Panel',
+        title: EnvironmentService.appName,
         theme: AppTheme.lightTheme,
-        initialRoute: AppRoutes.login,
+        initialRoute: AppRoutes.roleSelector,
         routes: AppRoutes.routes,
         onGenerateRoute: AppRoutes.onGenerateRoute,
         debugShowCheckedModeBanner: kDebugMode ? false : false,
