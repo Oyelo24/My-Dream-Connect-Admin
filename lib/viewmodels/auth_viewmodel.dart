@@ -22,7 +22,6 @@ class AuthViewModel extends ChangeNotifier {
   // Initialize auth service with user type
   void setUserType(String type) {
     _userType = type;
-    _authService.initializeAuth(collectionName: type);
     notifyListeners();
   }
 

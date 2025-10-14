@@ -1,11 +1,70 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../utils/app_colors.dart';
+import '../models/student_report.dart';
+import '../services/firebase_report_service.dart';
 
-class StudentReportsScreen extends StatelessWidget {
+class StudentReportsScreen extends StatefulWidget {
   const StudentReportsScreen({super.key});
 
   @override
+  State<StudentReportsScreen> createState() => _StudentReportsScreenState();
+}
+
+class _StudentReportsScreenState extends State<StudentReportsScreen> {
+  final FirebaseReportService _reportService = FirebaseReportService();
+  StudentReport? _report;
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadReport();
+  }
+
+  Future<void> _loadReport() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      final report = await _reportService.getStudentReport(user.uid);
+      setState(() {
+        _report = report;
+        _isLoading = false;
+      });
+    } else {
+      setState(() {
+        _report = null;
+        _isLoading = false;
+      });
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Scaffold(
+        backgroundColor: Colors.grey,
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    if (_report == null) {
+      return const Scaffold(
+        backgroundColor: Colors.grey,
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.assessment, size: 64, color: Colors.grey),
+              SizedBox(height: 16),
+              Text('No report data available', style: TextStyle(fontSize: 18, color: Colors.grey)),
+            ],
+          ),
+        ),
+      );
+    }
+
+    final report = _report!;
+
     return Scaffold(
       backgroundColor: Colors.grey[50],
       body: SingleChildScrollView(
@@ -22,11 +81,11 @@ class StudentReportsScreen extends StatelessWidget {
             // Performance Cards
             Row(
               children: [
-                Expanded(child: _buildPerformanceCard('A-', 'Grade', AppColors.primary)),
+                Expanded(child: _buildPerformanceCard(report.overallGrade, 'Grade', AppColors.primary)),
                 const SizedBox(width: 12),
-                Expanded(child: _buildPerformanceCard('84%', 'Attendance', AppColors.success)),
+                Expanded(child: _buildPerformanceCard('${(report.attendanceRate * 100).toInt()}%', 'Attendance', AppColors.success)),
                 const SizedBox(width: 12),
-                Expanded(child: _buildPerformanceCard('80%', 'Progress', AppColors.warning)),
+                Expanded(child: _buildPerformanceCard('${(report.progressRate * 100).toInt()}%', 'Progress', AppColors.warning)),
               ],
             ),
             const SizedBox(height: 32),
@@ -53,11 +112,12 @@ class StudentReportsScreen extends StatelessWidget {
             ),
             const SizedBox(height: 16),
             
-            _buildScoreItem('JavaScript Fundamentals', 'Dec 10, 2024', '95%', AppColors.success),
-            _buildScoreItem('HTML & CSS Mastery', 'Dec 8, 2024', '88%', AppColors.primary),
-            _buildScoreItem('Web Design Principles', 'Dec 5, 2024', '92%', AppColors.success),
-            _buildScoreItem('Programming Logic', 'Dec 3, 2024', '78%', AppColors.primary),
-            _buildScoreItem('Introduction to Web Dev', 'Dec 1, 2024', '85%', AppColors.primary),
+            ...report.recentScores.map((score) => _buildScoreItem(
+              score.title,
+              score.date,
+              score.score,
+              _getScoreColor(score.score),
+            )),
             
             const SizedBox(height: 32),
             
@@ -83,43 +143,44 @@ class StudentReportsScreen extends StatelessWidget {
             ),
             const SizedBox(height: 16),
             
-            _buildSkillProgress('JavaScript', 0.85, 'Advanced'),
-            _buildSkillProgress('HTML/CSS', 0.90, 'Expert'),
-            _buildSkillProgress('React', 0.65, 'Intermediate'),
-            _buildSkillProgress('Version Control', 0.75, 'Intermediate'),
-            _buildSkillProgress('Problem Solving', 0.80, 'Advanced'),
+            ...report.skillProgress.map((skill) => _buildSkillProgress(
+              skill.skill,
+              skill.progress,
+              skill.level,
+            )),
             
             const SizedBox(height: 32),
             
             // Achievement Unlocked
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: AppColors.warning,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: const Column(
-                children: [
-                  Icon(Icons.emoji_events, color: Colors.white, size: 32),
-                  SizedBox(height: 8),
-                  Text(
-                    'Achievement Unlocked!',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
+            if (report.latestAchievement != null)
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: AppColors.warning,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Column(
+                  children: [
+                    const Icon(Icons.emoji_events, color: Colors.white, size: 32),
+                    const SizedBox(height: 8),
+                    Text(
+                      report.latestAchievement!.title,
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
                     ),
-                  ),
-                  SizedBox(height: 4),
-                  Text(
-                    'Completed 80% of all assessments with excellent scores',
-                    style: TextStyle(fontSize: 14, color: Colors.white),
-                    textAlign: TextAlign.center,
-                  ),
-                ],
+                    const SizedBox(height: 4),
+                    Text(
+                      report.latestAchievement!.description,
+                      style: const TextStyle(fontSize: 14, color: Colors.white),
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
+                ),
               ),
-            ),
           ],
         ),
       ),
@@ -248,5 +309,12 @@ class StudentReportsScreen extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  Color _getScoreColor(String score) {
+    final percentage = int.tryParse(score.replaceAll('%', '')) ?? 0;
+    if (percentage >= 90) return AppColors.success;
+    if (percentage >= 80) return AppColors.primary;
+    return AppColors.warning;
   }
 }

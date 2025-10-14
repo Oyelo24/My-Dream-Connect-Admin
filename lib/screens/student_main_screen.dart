@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import '../viewmodels/student_dashboard_viewmodel.dart';
 import '../utils/app_colors.dart';
 import 'student_dashboard_screen.dart';
-import 'student_courses_screen.dart';
+import 'student_track_screen.dart';
 import 'student_assessments_screen.dart';
 import 'student_attendance_screen.dart';
 import 'student_reports_screen.dart';
@@ -20,7 +18,7 @@ class _StudentMainScreenState extends State<StudentMainScreen> {
 
   final List<String> _menuItems = [
     'Dashboard',
-    'My Courses',
+    'My Track',
     'Assessments',
     'Reports',
     'Attendance',
@@ -28,28 +26,25 @@ class _StudentMainScreenState extends State<StudentMainScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider(
-      create: (_) => StudentDashboardViewModel(),
-      child: Scaffold(
-        backgroundColor: Colors.grey[50],
-        appBar: AppBar(
-          backgroundColor: AppColors.primary,
-          foregroundColor: Colors.white,
-          title: Text(_menuItems[_selectedIndex]),
-          actions: [
-            IconButton(
-              icon: const Icon(Icons.notifications),
-              onPressed: () {},
-            ),
-            IconButton(
-              icon: const Icon(Icons.logout),
-              onPressed: () => Navigator.pushReplacementNamed(context, '/'),
-            ),
-          ],
-        ),
-        drawer: _buildDrawer(),
-        body: _buildContent(),
+    return Scaffold(
+      backgroundColor: Colors.grey[50],
+      appBar: AppBar(
+        backgroundColor: AppColors.primary,
+        foregroundColor: Colors.white,
+        title: Text(_menuItems[_selectedIndex]),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.notifications),
+            onPressed: () {},
+          ),
+          IconButton(
+            icon: const Icon(Icons.logout),
+            onPressed: () => Navigator.pushReplacementNamed(context, '/'),
+          ),
+        ],
       ),
+      drawer: _buildDrawer(),
+      body: _buildContent(),
     );
   }
 
@@ -112,7 +107,7 @@ class _StudentMainScreenState extends State<StudentMainScreen> {
       case 0:
         return const StudentDashboardScreen();
       case 1:
-        return const StudentCoursesScreen();
+        return const StudentTrackScreen();
       case 2:
         return const StudentAssessmentsScreen();
       case 3:

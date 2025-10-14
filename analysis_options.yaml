@@ -9,7 +9,8 @@
 # packages, and plugins designed to encourage good coding practices.
 analyzer:
   errors:
-    unused_element: ignore
+    # Enable unused element detection for better code quality
+    # unused_element: ignore
 include: package:flutter_lints/flutter.yaml
 
 linter:

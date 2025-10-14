@@ -12,7 +12,7 @@ import 'package:mdc_admin/main.dart';
 void main() {
   testWidgets('App starts with role selector screen', (WidgetTester tester) async {
     // Build our app and trigger a frame.
-    await tester.pumpWidget(const MDCApp());
+    await tester.pumpWidget(const MyApp());
 
     // Verify that the role selector screen is displayed
     expect(find.text('Choose Your Role'), findsOneWidget);
@@ -21,7 +21,7 @@ void main() {
   });
 
   testWidgets('Role selection navigation works', (WidgetTester tester) async {
-    await tester.pumpWidget(const MDCApp());
+    await tester.pumpWidget(const MyApp());
 
     // Tap on Admin Portal
     await tester.tap(find.text('Admin Portal'));

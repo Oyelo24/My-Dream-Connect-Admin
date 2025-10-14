@@ -10,6 +10,7 @@ class Student {
   final String status;
   final String progress;
   final String? avatar;
+  final String? track;
 
   Student({
     required this.id,
@@ -23,6 +24,7 @@ class Student {
     required this.status,
     required this.progress,
     this.avatar,
+    this.track,
   });
 
   factory Student.fromJson(Map<String, dynamic> json) {
@@ -38,6 +40,7 @@ class Student {
       status: json['status'] ?? 'INACTIVE',
       progress: json['progress'] ?? '0/0',
       avatar: json['avatar'],
+      track: json['track'],
     );
   }
 
@@ -54,6 +57,7 @@ class Student {
       'status': status,
       'progress': progress,
       'avatar': avatar,
+      'track': track,
     };
   }
 

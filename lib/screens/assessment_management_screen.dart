@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../utils/app_colors.dart';
-import '../services/assessment_service.dart';
+import '../services/admin_assessment_service.dart';
 
 class AssessmentManagementScreen extends StatefulWidget {
   const AssessmentManagementScreen({super.key});
@@ -12,31 +13,35 @@ class AssessmentManagementScreen extends StatefulWidget {
 
 class _AssessmentManagementScreenState
     extends State<AssessmentManagementScreen> {
-  List<Assessment> assessments = [];
-  bool isLoading = true;
-  String? errorMessage;
+  final AdminAssessmentService _assessmentService = AdminAssessmentService();
+  String selectedCohort = 'Frontend Cohort 2024';
+  String selectedType = 'All Types';
+
+  Map<String, dynamic> _stats = {};
+  List<Map<String, dynamic>> _assessments = [];
+  bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
-    _fetchAssessments();
+    _loadAssessmentData();
   }
 
-  Future<void> _fetchAssessments() async {
-    setState(() {
-      isLoading = true;
-      errorMessage = null;
-    });
+  Future<void> _loadAssessmentData() async {
     try {
-      final data = await AssessmentService().getAllAssessments();
+      final stats = await _assessmentService.getAssessmentStats();
+      final assessments = await _assessmentService.getAssessments();
+
+      if (!mounted) return;
       setState(() {
-        assessments = List<Assessment>.from(data);
-        isLoading = false;
+        _stats = stats;
+        _assessments = assessments;
+        _isLoading = false;
       });
     } catch (e) {
+      if (!mounted) return;
       setState(() {
-        errorMessage = 'Failed to load assessments';
-        isLoading = false;
+        _isLoading = false;
       });
     }
   }
@@ -49,19 +54,16 @@ class _AssessmentManagementScreenState
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
-            mainAxisAlignment: MainAxisAlignment.end,
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
+              _buildFilters(),
               ElevatedButton.icon(
-                onPressed: () {},
+                onPressed: () => _createAssessment(),
                 icon: const Icon(Icons.add, size: 16),
                 label: const Text('Create Assessment'),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.primary,
                   foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 12,
-                  ),
                 ),
               ),
             ],
@@ -69,85 +71,102 @@ class _AssessmentManagementScreenState
           const SizedBox(height: 24),
           _buildStatsCards(),
           const SizedBox(height: 24),
-          _buildAssessmentsTable(),
+          _buildAssessmentsList(),
         ],
       ),
     );
   }
 
-  Widget _buildHeader() {
+  Widget _buildFilters() {
     return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Assessment Management',
-              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+        _buildDropdown(selectedCohort, Icons.group),
+        const SizedBox(width: 16),
+        _buildDropdown(selectedType, Icons.assignment),
+      ],
+    );
+  }
+
+  Widget _buildDropdown(String value, IconData icon) {
+    final items = icon == Icons.group
+        ? [
+            'All Cohorts',
+            'Frontend Cohort 2024',
+            'Backend Cohort 2024',
+            'Data Analysis Cohort 2024',
+          ]
+        : ['All Types', 'Quiz', 'Project', 'Exam'];
+
+    return DropdownButton<String>(
+      value: value,
+      items: items
+          .map(
+            (item) => DropdownMenuItem(
+              value: item,
+              child: Row(
+                children: [
+                  Icon(icon, size: 16),
+                  const SizedBox(width: 8),
+                  Text(item),
+                ],
+              ),
             ),
-            const SizedBox(height: 4),
-            Text(
-              'Create, manage, and monitor student assessments',
-              style: TextStyle(fontSize: 14, color: AppColors.textSecondary),
-            ),
-          ],
+          )
+          .toList(),
+      onChanged: (newValue) {
+        setState(() {
+          if (icon == Icons.group) {
+            selectedCohort = newValue!;
+          } else {
+            selectedType = newValue!;
+          }
+        });
+      },
+      underline: Container(),
+    );
+  }
+
+  Widget _buildStatsCards() {
+    if (_isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    return Row(
+      children: [
+        _buildStatCard(
+          '${_stats['totalAssessments'] ?? 0}',
+          'Total Assessments',
+          AppColors.primary,
         ),
-        ElevatedButton.icon(
-          onPressed: () {},
-          icon: const Icon(Icons.add, size: 16),
-          label: const Text('Create Assessment'),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: AppColors.primary,
-            foregroundColor: Colors.white,
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          ),
+        const SizedBox(width: 16),
+        _buildStatCard(
+          '${_stats['completedCount'] ?? 0}',
+          'Completed',
+          AppColors.success,
+        ),
+        const SizedBox(width: 16),
+        _buildStatCard(
+          '${_stats['activeCount'] ?? 0}',
+          'Active',
+          AppColors.warning,
+        ),
+        const SizedBox(width: 16),
+        _buildStatCard(
+          '${_stats['upcomingCount'] ?? 0}',
+          'Upcoming',
+          AppColors.secondary,
+        ),
+        const SizedBox(width: 16),
+        _buildStatCard(
+          '${(_stats['avgScore'] ?? 0.0).toStringAsFixed(1)}%',
+          'Avg Score',
+          AppColors.primary,
         ),
       ],
     );
   }
 
-  Widget _buildStatsCards() {
-    return FutureBuilder<Map<String, dynamic>>(
-      future: AssessmentService().getAssessmentStatistics(),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
-        }
-        
-        final stats = snapshot.data ?? {};
-        return Row(
-          children: [
-            _buildStatCard(
-              stats['totalAssessments']?.toString() ?? '0',
-              'Total Assessments',
-              AppColors.primary,
-            ),
-            const SizedBox(width: 16),
-            _buildStatCard(
-              stats['activeAssessments']?.toString() ?? '0',
-              'Active',
-              AppColors.success,
-            ),
-            const SizedBox(width: 16),
-            _buildStatCard(
-              stats['completedAssessments']?.toString() ?? '0',
-              'Completed',
-              AppColors.warning,
-            ),
-            const SizedBox(width: 16),
-            _buildStatCard(
-              stats['draftAssessments']?.toString() ?? '0',
-              'Drafts',
-              Colors.grey[400]!,
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  Widget _buildStatCard(String count, String label, Color color) {
+  Widget _buildStatCard(String value, String label, Color color) {
     return Expanded(
       child: Container(
         padding: const EdgeInsets.all(20),
@@ -158,7 +177,7 @@ class _AssessmentManagementScreenState
         child: Column(
           children: [
             Text(
-              count,
+              value,
               style: const TextStyle(
                 fontSize: 24,
                 fontWeight: FontWeight.bold,
@@ -176,319 +195,308 @@ class _AssessmentManagementScreenState
     );
   }
 
-  Widget _buildAssessmentsTable() {
+  Widget _buildAssessmentsList() {
     return Expanded(
-      child: Container(
-        decoration: BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: AppColors.border),
-        ),
+      child: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : _assessments.isEmpty
+          ? const Center(child: Text('No assessments found'))
+          : ListView.builder(
+              itemCount: _assessments.length,
+              itemBuilder: (context, index) => _buildAssessmentCard(index),
+            ),
+    );
+  }
+
+  Widget _buildAssessmentCard(int index) {
+    final assessment = _assessments[index];
+    final submissionRate = assessment['submissionRate'];
+    final totalSubmissions = assessment['totalSubmissions'];
+    final totalStudents = assessment['totalStudents'];
+    final avgScore = assessment['avgScore'];
+
+    return Card(
+      margin: const EdgeInsets.only(bottom: 16),
+      child: Padding(
+        padding: const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Row(
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Icon(
-                        Icons.assignment,
-                        size: 16,
-                        color: AppColors.primary,
-                      ),
-                      SizedBox(width: 8),
                       Text(
-                        'All Assessments',
+                        assessment['title'],
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Type: ${assessment['type']} • Duration: ${assessment['duration']} • Due: ${assessment['dueDate']}',
+                      ),
+                    ],
+                  ),
+                ),
+                _buildStatusChip(assessment['status']),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Submissions',
+                        style: TextStyle(fontWeight: FontWeight.w500),
+                      ),
+                      const SizedBox(height: 4),
+                      LinearProgressIndicator(
+                        value: submissionRate,
+                        backgroundColor: Colors.grey[300],
+                        valueColor: AlwaysStoppedAnimation<Color>(
+                          AppColors.primary,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        '$totalSubmissions/$totalStudents submitted',
+                        style: const TextStyle(fontSize: 12),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 20),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Average Score',
+                        style: TextStyle(fontWeight: FontWeight.w500),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        '${avgScore.toStringAsFixed(1)}%',
                         style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.success,
                         ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'Manage and monitor all student assessments',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: AppColors.textSecondary,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Container(
-              color: Colors.grey[50],
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              child: const Row(
-                children: [
-                  Expanded(
-                    flex: 2,
-                    child: Text(
-                      'Assessment',
-                      style: TextStyle(
-                        fontWeight: FontWeight.w600,
-                        fontSize: 12,
-                      ),
-                    ),
-                  ),
-                  Expanded(
-                    flex: 1,
-                    child: Text(
-                      'Subject',
-                      style: TextStyle(
-                        fontWeight: FontWeight.w600,
-                        fontSize: 12,
-                      ),
-                    ),
-                  ),
-                  Expanded(
-                    flex: 1,
-                    child: Text(
-                      'Duration',
-                      style: TextStyle(
-                        fontWeight: FontWeight.w600,
-                        fontSize: 12,
-                      ),
-                    ),
-                  ),
-                  Expanded(
-                    flex: 1,
-                    child: Text(
-                      'Questions',
-                      style: TextStyle(
-                        fontWeight: FontWeight.w600,
-                        fontSize: 12,
-                      ),
-                    ),
-                  ),
-                  Expanded(
-                    flex: 1,
-                    child: Text(
-                      'Status',
-                      style: TextStyle(
-                        fontWeight: FontWeight.w600,
-                        fontSize: 12,
-                      ),
-                    ),
-                  ),
-                  Expanded(
-                    flex: 1,
-                    child: Text(
-                      'Completion',
-                      style: TextStyle(
-                        fontWeight: FontWeight.w600,
-                        fontSize: 12,
-                      ),
-                    ),
-                  ),
-                  Expanded(
-                    flex: 1,
-                    child: Text(
-                      'Performance',
-                      style: TextStyle(
-                        fontWeight: FontWeight.w600,
-                        fontSize: 12,
-                      ),
-                    ),
-                  ),
-                  Expanded(
-                    flex: 1,
-                    child: Text(
-                      'Actions',
-                      style: TextStyle(
-                        fontWeight: FontWeight.w600,
-                        fontSize: 12,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            if (isLoading)
-              const Expanded(child: Center(child: CircularProgressIndicator()))
-            else if (errorMessage != null)
-              Expanded(child: Center(child: Text('Error: ' + errorMessage!)))
-            else if (assessments.isEmpty)
-              const Expanded(child: Center(child: Text('No assessments found')))
-            else
-              Expanded(
-                child: ListView.builder(
-                  itemCount: assessments.length,
-                  itemBuilder: (context, index) =>
-                      _buildAssessmentRow(assessments[index]),
                 ),
-              ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                ElevatedButton.icon(
+                  onPressed: () => _gradeAssessment(assessment['id']),
+                  icon: const Icon(Icons.grade, size: 16),
+                  label: const Text('Grade'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: Colors.white,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                OutlinedButton.icon(
+                  onPressed: () => _viewSubmissions(assessment['id']),
+                  icon: const Icon(Icons.visibility, size: 16),
+                  label: const Text('View Submissions'),
+                ),
+                const SizedBox(width: 12),
+                OutlinedButton.icon(
+                  onPressed: () => _generateReport(assessment['id']),
+                  icon: const Icon(Icons.analytics, size: 16),
+                  label: const Text('Analytics'),
+                ),
+              ],
+            ),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildAssessmentRow(Assessment assessment) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      decoration: BoxDecoration(
-        border: Border(bottom: BorderSide(color: AppColors.border)),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            flex: 2,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  assessment.title,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w500,
-                    fontSize: 14,
-                  ),
-                ),
-                Text(
-                  'Created: ${assessment.createdDate}',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: AppColors.textSecondary,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Expanded(
-            flex: 1,
-            child: Text(
-              assessment.subject,
-              style: const TextStyle(fontSize: 14),
-            ),
-          ),
-          Expanded(
-            flex: 1,
-            child: Row(
-              children: [
-                const Icon(
-                  Icons.schedule,
-                  size: 12,
-                  color: AppColors.textSecondary,
-                ),
-                const SizedBox(width: 4),
-                Text(assessment.duration, style: const TextStyle(fontSize: 14)),
-              ],
-            ),
-          ),
-          Expanded(
-            flex: 1,
-            child: Text(
-              assessment.questions,
-              style: const TextStyle(fontSize: 12),
-            ),
-          ),
-          Expanded(flex: 1, child: _buildStatusChip(assessment.status)),
-          Expanded(
-            flex: 1,
-            child: Text(
-              assessment.completion,
-              style: const TextStyle(fontSize: 12),
-            ),
-          ),
-          Expanded(
-            flex: 1,
-            child: Text(
-              assessment.performance,
-              style: const TextStyle(fontSize: 12),
-            ),
-          ),
-          Expanded(
-            flex: 1,
-            child: Row(
-              children: [
-                IconButton(
-                  icon: const Icon(Icons.visibility, size: 16),
-                  onPressed: () {},
-                  tooltip: 'View',
-                ),
-                IconButton(
-                  icon: const Icon(Icons.edit, size: 16),
-                  onPressed: () {},
-                  tooltip: 'Edit',
-                ),
-                IconButton(
-                  icon: const Icon(Icons.bar_chart, size: 16),
-                  onPressed: () {},
-                  tooltip: 'Results',
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildStatusChip(AssessmentStatus status) {
-    Color color;
-    String text;
-
-    switch (status) {
-      case AssessmentStatus.active:
-        color = AppColors.success;
-        text = 'active';
-        break;
-      case AssessmentStatus.completed:
-        color = AppColors.primary;
-        text = 'completed';
-        break;
-      case AssessmentStatus.draft:
-        color = Colors.grey;
-        text = 'draft';
-        break;
-      case AssessmentStatus.scheduled:
-        color = AppColors.warning;
-        text = 'scheduled';
-        break;
-    }
+  Widget _buildStatusChip(String status) {
+    Color color = AppColors.success;
+    if (status == 'Active') color = AppColors.warning;
+    if (status == 'Upcoming') color = AppColors.secondary;
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
         color: color,
         borderRadius: BorderRadius.circular(12),
       ),
       child: Text(
-        text,
+        status,
         style: const TextStyle(
           color: Colors.white,
-          fontSize: 10,
-          fontWeight: FontWeight.w500,
+          fontSize: 12,
+          fontWeight: FontWeight.bold,
         ),
       ),
     );
   }
-}
 
-enum AssessmentStatus { active, completed, draft, scheduled }
+  void _createAssessment() {
+    final titleController = TextEditingController();
+    final durationController = TextEditingController();
+    final marksController = TextEditingController();
+    final courseController = TextEditingController();
+    String selectedAssessmentType = 'Quiz';
+    DateTime selectedDate = DateTime.now().add(const Duration(days: 7));
 
-class Assessment {
-  final String title;
-  final String subject;
-  final String duration;
-  final String questions;
-  final AssessmentStatus status;
-  final String completion;
-  final String performance;
-  final String createdDate;
+    showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: const Text('Create New Assessment'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: titleController,
+                  decoration: const InputDecoration(
+                    labelText: 'Assessment Title',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                DropdownButtonFormField<String>(
+                  decoration: const InputDecoration(
+                    labelText: 'Type',
+                    border: OutlineInputBorder(),
+                  ),
+                  value: selectedAssessmentType,
+                  items: ['Quiz', 'Project', 'Exam', 'Assignment']
+                      .map(
+                        (type) =>
+                            DropdownMenuItem(value: type, child: Text(type)),
+                      )
+                      .toList(),
+                  onChanged: (value) =>
+                      setDialogState(() => selectedAssessmentType = value!),
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: courseController,
+                  decoration: const InputDecoration(
+                    labelText: 'Course/Subject',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: durationController,
+                  decoration: const InputDecoration(
+                    labelText: 'Duration (e.g., 30 min, 2 hours)',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: marksController,
+                  decoration: const InputDecoration(
+                    labelText: 'Total Marks',
+                    border: OutlineInputBorder(),
+                  ),
+                  keyboardType: TextInputType.number,
+                ),
+                const SizedBox(height: 16),
+                ListTile(
+                  title: const Text('Due Date'),
+                  subtitle: Text(
+                    '${selectedDate.day}/${selectedDate.month}/${selectedDate.year}',
+                  ),
+                  trailing: const Icon(Icons.calendar_today),
+                  onTap: () async {
+                    final date = await showDatePicker(
+                      context: context,
+                      initialDate: selectedDate,
+                      firstDate: DateTime.now(),
+                      lastDate: DateTime.now().add(const Duration(days: 365)),
+                    );
+                    if (date != null) {
+                      setDialogState(() => selectedDate = date);
+                    }
+                  },
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                if (titleController.text.isNotEmpty) {
+                  final success = await _assessmentService.createAssessment({
+                    'title': titleController.text,
+                    'type': selectedAssessmentType,
+                    'course': courseController.text.isNotEmpty
+                        ? courseController.text
+                        : 'General',
+                    'duration': durationController.text.isNotEmpty
+                        ? durationController.text
+                        : '30 min',
+                    'total_marks': int.tryParse(marksController.text) ?? 100,
+                    'due_date': Timestamp.fromDate(selectedDate),
+                  });
+                  Navigator.pop(context);
+                  if (success) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Assessment created successfully'),
+                      ),
+                    );
+                    _loadAssessmentData();
+                  } else {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Failed to create assessment'),
+                      ),
+                    );
+                  }
+                }
+              },
+              child: const Text('Create'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 
-  Assessment({
-    required this.title,
-    required this.subject,
-    required this.duration,
-    required this.questions,
-    required this.status,
-    required this.completion,
-    required this.performance,
-    required this.createdDate,
-  });
+  void _gradeAssessment(String assessmentId) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Grading feature coming soon')),
+    );
+  }
+
+  void _viewSubmissions(String assessmentId) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Submissions view coming soon')),
+    );
+  }
+
+  void _generateReport(String assessmentId) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Analytics report coming soon')),
+    );
+  }
 }

@@ -111,6 +111,9 @@ class RoleSelectorScreen extends StatelessWidget {
   }
 
   void _navigateToLogin(BuildContext context, UserRole role) {
-    Navigator.pushNamed(context, AppRoutes.login, arguments: {'role': role});
+    print('Role selector: Selected role ${role.name}');
+    Navigator.pushNamed(context, AppRoutes.login, arguments: {'role': role.name});
   }
 }
+
+

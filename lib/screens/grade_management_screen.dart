@@ -9,8 +9,8 @@ class GradeManagementScreen extends StatefulWidget {
 }
 
 class _GradeManagementScreenState extends State<GradeManagementScreen> {
-  String selectedCourse = 'All Courses';
-  String selectedSemester = 'Current Semester';
+  String selectedCohort = 'Frontend Cohort 2024';
+  String selectedAssessment = 'All Assessments';
 
   @override
   Widget build(BuildContext context) {
@@ -23,14 +23,28 @@ class _GradeManagementScreenState extends State<GradeManagementScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               _buildFilters(),
-              ElevatedButton.icon(
-                onPressed: () {},
-                icon: const Icon(Icons.download, size: 16),
-                label: const Text('Export Grades'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                  foregroundColor: Colors.white,
-                ),
+              Row(
+                children: [
+                  ElevatedButton.icon(
+                    onPressed: () => _bulkGrade(),
+                    icon: const Icon(Icons.grade, size: 16),
+                    label: const Text('Bulk Grade'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.success,
+                      foregroundColor: Colors.white,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  ElevatedButton.icon(
+                    onPressed: () {},
+                    icon: const Icon(Icons.download, size: 16),
+                    label: const Text('Export'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                      foregroundColor: Colors.white,
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
@@ -46,39 +60,9 @@ class _GradeManagementScreenState extends State<GradeManagementScreen> {
   Widget _buildFilters() {
     return Row(
       children: [
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          decoration: BoxDecoration(
-            color: AppColors.surface,
-            border: Border.all(color: AppColors.border),
-            borderRadius: BorderRadius.circular(6),
-          ),
-          child: Row(
-            children: [
-              const Icon(Icons.book, size: 16),
-              const SizedBox(width: 8),
-              Text(selectedCourse),
-              const Icon(Icons.arrow_drop_down, size: 16),
-            ],
-          ),
-        ),
+        _buildDropdown(selectedCohort, Icons.group),
         const SizedBox(width: 16),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          decoration: BoxDecoration(
-            color: AppColors.surface,
-            border: Border.all(color: AppColors.border),
-            borderRadius: BorderRadius.circular(6),
-          ),
-          child: Row(
-            children: [
-              const Icon(Icons.calendar_today, size: 16),
-              const SizedBox(width: 8),
-              Text(selectedSemester),
-              const Icon(Icons.arrow_drop_down, size: 16),
-            ],
-          ),
-        ),
+        _buildDropdown(selectedAssessment, Icons.assignment),
       ],
     );
   }
@@ -86,13 +70,13 @@ class _GradeManagementScreenState extends State<GradeManagementScreen> {
   Widget _buildStatsCards() {
     return Row(
       children: [
-        _buildStatCard('85.2', 'Class Average', AppColors.primary),
+        _buildStatCard('85.2', 'Cohort Average', AppColors.primary),
         const SizedBox(width: 16),
-        _buildStatCard('92', 'Highest Grade', AppColors.success),
+        _buildStatCard('24', 'Total Students', AppColors.secondary),
         const SizedBox(width: 16),
-        _buildStatCard('68', 'Lowest Grade', AppColors.error),
+        _buildStatCard('20', 'Graded', AppColors.success),
         const SizedBox(width: 16),
-        _buildStatCard('78%', 'Pass Rate', AppColors.secondary),
+        _buildStatCard('4', 'Pending', AppColors.warning),
       ],
     );
   }
@@ -132,10 +116,9 @@ class _GradeManagementScreenState extends State<GradeManagementScreen> {
               child: const Row(
                 children: [
                   Expanded(flex: 2, child: Text('Student', style: TextStyle(fontWeight: FontWeight.w600))),
-                  Expanded(child: Text('Course', style: TextStyle(fontWeight: FontWeight.w600))),
-                  Expanded(child: Text('Midterm', style: TextStyle(fontWeight: FontWeight.w600))),
-                  Expanded(child: Text('Final', style: TextStyle(fontWeight: FontWeight.w600))),
-                  Expanded(child: Text('Overall', style: TextStyle(fontWeight: FontWeight.w600))),
+                  Expanded(child: Text('Assessment', style: TextStyle(fontWeight: FontWeight.w600))),
+                  Expanded(child: Text('Score', style: TextStyle(fontWeight: FontWeight.w600))),
+                  Expanded(child: Text('Submission', style: TextStyle(fontWeight: FontWeight.w600))),
                   Expanded(child: Text('Grade', style: TextStyle(fontWeight: FontWeight.w600))),
                   Expanded(child: Text('Actions', style: TextStyle(fontWeight: FontWeight.w600))),
                 ],
@@ -154,6 +137,11 @@ class _GradeManagementScreenState extends State<GradeManagementScreen> {
   }
 
   Widget _buildGradeRow() {
+    final assessments = ['JS Quiz', 'React Project', 'Final Exam'];
+    final scores = ['85', '92', '78'];
+    final submissions = ['On Time', 'Late', 'On Time'];
+    final grades = ['B+', 'A-', 'C+'];
+    
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(border: Border(bottom: BorderSide(color: AppColors.border))),
@@ -165,25 +153,58 @@ class _GradeManagementScreenState extends State<GradeManagementScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text('John Doe', style: TextStyle(fontWeight: FontWeight.w500)),
-                Text('ID: ST2024001', style: TextStyle(fontSize: 12, color: Colors.grey[600])),
+                Text('john.doe@email.com', style: TextStyle(fontSize: 12, color: Colors.grey[600])),
               ],
             ),
           ),
-          const Expanded(child: Text('MATH101')),
-          const Expanded(child: Text('85')),
-          const Expanded(child: Text('88')),
-          const Expanded(child: Text('86.5')),
-          Expanded(child: _buildGradeChip('B+')),
+          Expanded(child: Text(assessments[0])),
+          Expanded(child: Text('${scores[0]}%')),
+          Expanded(child: _buildSubmissionChip(submissions[0])),
+          Expanded(child: _buildGradeChip(grades[0])),
           Expanded(
             child: Row(
               children: [
-                IconButton(icon: const Icon(Icons.edit, size: 16), onPressed: () {}),
-                IconButton(icon: const Icon(Icons.visibility, size: 16), onPressed: () {}),
+                IconButton(icon: const Icon(Icons.edit, size: 16), onPressed: () => _editGrade()),
+                IconButton(icon: const Icon(Icons.visibility, size: 16), onPressed: () => _viewSubmission()),
               ],
             ),
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildDropdown(String value, IconData icon) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        border: Border.all(color: AppColors.border),
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, size: 16),
+          const SizedBox(width: 8),
+          Text(value),
+          const Icon(Icons.arrow_drop_down, size: 16),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSubmissionChip(String status) {
+    Color color = AppColors.success;
+    if (status == 'Late') color = AppColors.warning;
+    if (status == 'Missing') color = AppColors.error;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: color,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Text(status, style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
     );
   }
 
@@ -200,5 +221,27 @@ class _GradeManagementScreenState extends State<GradeManagementScreen> {
       ),
       child: Text(grade, style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
     );
+  }
+
+  void _bulkGrade() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Bulk Grade Assignment'),
+        content: const Text('Apply grades to multiple students at once.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+          ElevatedButton(onPressed: () => Navigator.pop(context), child: const Text('Apply')),
+        ],
+      ),
+    );
+  }
+
+  void _editGrade() {
+    // Edit individual grade
+  }
+
+  void _viewSubmission() {
+    // View student submission
   }
 }

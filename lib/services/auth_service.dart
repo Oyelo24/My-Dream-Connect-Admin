@@ -1,148 +1,92 @@
-import 'package:http/http.dart' as http;
-import 'dart:convert';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/login_request.dart';
 import '../models/login_response.dart';
 import '../models/signup_request.dart';
 import 'storage_service.dart';
-import 'config_service.dart';
 
 class AuthService {
-  // Default to users collection for authentication
-  String _collectionName = ConfigService.getCollectionUrl('users');
-
-  // Set collection for authentication (admin/users)
-  void setCollection(String collectionName) {
-    _collectionName = ConfigService.getCollectionUrl(collectionName);
-  }
-
-  // Initialize auth service with collection type (defaults to users)
-  void initializeAuth({String collectionName = 'users'}) {
-    _collectionName = ConfigService.getCollectionUrl(collectionName);
-  }
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   Future<AccessResponse> login(LoginRequest request) async {
     try {
-      final response = await http.post(
-        Uri.parse(ConfigService.getAuthWithPasswordUrl(_collectionName)),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'identity': request.email,
-          'password': request.password,
-        }),
+      final credential = await _auth.signInWithEmailAndPassword(
+        email: request.email,
+        password: request.password,
       );
-
-      final data = jsonDecode(response.body);
-
-      if (response.statusCode == 200) {
-        final authResponse = AccessResponse.fromJson(data);
-        if (authResponse.isValid) {
-          // Save token and user data
-          await _saveAuthData(authResponse);
-          return authResponse;
-        } else {
-          throw Exception('Invalid authentication response');
-        }
-      } else {
-        throw Exception(data['message'] ?? 'Login failed');
+      
+      if (credential.user != null) {
+        final userDoc = await _firestore.collection('users').doc(credential.user!.uid).get();
+        final userData = userDoc.data();
+        
+        final response = AccessResponse(
+          token: await credential.user!.getIdToken(),
+          username: userData?['name'] ?? credential.user!.displayName,
+          role: userData?['role'] ?? 'student',
+          userData: userData,
+        );
+        
+        await StorageService.saveUserData(
+          response.username ?? 'User',
+          response.role ?? 'student',
+        );
+        
+        return response;
       }
+      throw Exception('Login failed');
     } catch (e) {
-      throw Exception('Network error: $e');
+      throw Exception('Login error: $e');
     }
   }
 
   Future<AccessResponse> signup(SignupRequest request) async {
     try {
-      final response = await http.post(
-        Uri.parse(ConfigService.getAuthWithPasswordUrl(_collectionName)),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'email': request.email,
-          'password': request.password,
-          'passwordConfirm': request.password,
-          'name': request.username, // Using 'name' field as per your schema
-        }),
+      print('AuthService: Creating user with role ${request.role}');
+      final credential = await _auth.createUserWithEmailAndPassword(
+        email: request.email,
+        password: request.password,
       );
-
-      final data = jsonDecode(response.body);
-
-      if (response.statusCode == 200) {
-        final authResponse = AccessResponse.fromJson(data);
-        if (authResponse.isValid) {
-          await _saveAuthData(authResponse);
-          return authResponse;
-        } else {
-          throw Exception('Invalid signup response');
-        }
-      } else {
-        throw Exception(data['message'] ?? 'Signup failed');
+      
+      if (credential.user != null) {
+        print('AuthService: Saving user data to Firestore with role ${request.role}');
+        await _firestore.collection('users').doc(credential.user!.uid).set({
+          'name': request.username,
+          'email': request.email,
+          'role': request.role,
+          'createdAt': FieldValue.serverTimestamp(),
+        });
+        
+        final response = AccessResponse(
+          token: await credential.user!.getIdToken(),
+          username: request.username,
+          role: request.role,
+        );
+        
+        print('AuthService: Saving to storage with role ${request.role}');
+        await StorageService.saveUserData(request.username, request.role);
+        return response;
       }
+      throw Exception('Signup failed');
     } catch (e) {
-      throw Exception('Network error: $e');
+      throw Exception('Signup error: $e');
     }
-  }
-
-  Future<void> _saveAuthData(AccessResponse response) async {
-    if (response.token != null) {
-      await StorageService.saveAuthToken(response.token!);
-    }
-    // Save user data with proper role extraction
-    final username = response.username ?? response.userData?['firstName'] ?? 'User';
-    final role = response.role ?? response.userData?['role'] ?? 'student';
-    await StorageService.saveUserData(username, role);
   }
 
   Future<bool> validateToken() async {
-    try {
-      final token = await StorageService.getAuthToken();
-      if (token == null) return false;
-
-      final response = await http.post(
-        Uri.parse(ConfigService.getRefreshAuthUrl(_collectionName)),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $token',
-        },
-      );
-
-      return response.statusCode == 200;
-    } catch (e) {
-      return false;
-    }
+    return _auth.currentUser != null;
   }
 
   Future<void> logout() async {
-    try {
-      final token = await StorageService.getAuthToken();
-      if (token != null) {
-        // Call PocketBase logout endpoint
-        await http.post(
-          Uri.parse(
-            '${ConfigService.baseUrl}/api/collections/${ConfigService.getCollectionUrl(_collectionName)}/auth-refresh',
-          ),
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': 'Bearer $token',
-          },
-          body: jsonEncode({'token': token}),
-        );
-      }
-    } catch (e) {
-      // Even if logout fails, clear local data
-    } finally {
-      await StorageService.clearAuthData();
-    }
+    await _auth.signOut();
+    await StorageService.clearAuthData();
   }
 
-  // Get current collection name
-  String get currentCollection => _collectionName;
-
-  // Check if current user is admin
   Future<bool> get isAdmin async {
     final role = await StorageService.getRole();
     return role == 'admin';
   }
 
-  // Get current user role
   Future<String?> getCurrentUserRole() async {
     return await StorageService.getRole();
   }

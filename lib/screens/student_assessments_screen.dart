@@ -1,11 +1,56 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../utils/app_colors.dart';
+import '../models/student_assessment.dart';
+import '../services/firebase_assessment_service.dart';
 
-class StudentAssessmentsScreen extends StatelessWidget {
+class StudentAssessmentsScreen extends StatefulWidget {
   const StudentAssessmentsScreen({super.key});
 
   @override
+  State<StudentAssessmentsScreen> createState() => _StudentAssessmentsScreenState();
+}
+
+class _StudentAssessmentsScreenState extends State<StudentAssessmentsScreen> {
+  final FirebaseAssessmentService _assessmentService = FirebaseAssessmentService();
+  List<StudentAssessment> _assessments = [];
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadAssessments();
+  }
+
+  Future<void> _loadAssessments() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      final assessments = await _assessmentService.getStudentAssessments(user.uid);
+      setState(() {
+        _assessments = assessments;
+        _isLoading = false;
+      });
+    } else {
+      setState(() {
+        _assessments = [];
+        _isLoading = false;
+      });
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Scaffold(
+        backgroundColor: Colors.grey,
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    final completedAssessments = _assessments.where((a) => a.status == StudentAssessmentStatus.completed).length;
+    final totalAssessments = _assessments.length;
+    final progressRate = totalAssessments > 0 ? completedAssessments / totalAssessments : 0.0;
+
     return Scaffold(
       backgroundColor: Colors.grey[50],
       body: SingleChildScrollView(
@@ -14,81 +59,115 @@ class StudentAssessmentsScreen extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
-              'Test your knowledge and skills',
+              'Complete your tech assessments and track progress',
               style: TextStyle(fontSize: 14, color: Colors.grey),
             ),
             const SizedBox(height: 24),
             
-            _buildAssessmentCard(
-              title: 'JavaScript Fundamentals Quiz',
-              duration: '15 min',
-              questions: '5 questions',
-              status: 'available',
-              buttonText: 'Start Assessment',
-              onPressed: () {},
+            // Progress Overview
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: AppColors.primary,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Column(
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Assessment Progress',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
+                          ),
+                          Text(
+                            '$completedAssessments of $totalAssessments completed',
+                            style: const TextStyle(fontSize: 14, color: Colors.white70),
+                          ),
+                        ],
+                      ),
+                      Text(
+                        '${(progressRate * 100).toInt()}%',
+                        style: const TextStyle(
+                          fontSize: 32,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  LinearProgressIndicator(
+                    value: progressRate,
+                    backgroundColor: Colors.white.withOpacity(0.3),
+                    valueColor: const AlwaysStoppedAnimation<Color>(Colors.white),
+                    minHeight: 8,
+                  ),
+                ],
+              ),
             ),
+            const SizedBox(height: 32),
             
-            _buildAssessmentCard(
-              title: 'HTML & CSS Assessment',
-              duration: '20 min',
-              questions: '8 questions',
-              status: 'completed',
-              score: '95%',
-              buttonText: 'Completed',
-              onPressed: null,
-            ),
+            // Available Assessments
+            if (_assessments.where((a) => a.status == StudentAssessmentStatus.available).isNotEmpty) ...[
+              const Text(
+                'Available Assessments',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87,
+                ),
+              ),
+              const SizedBox(height: 16),
+              ..._assessments
+                  .where((a) => a.status == StudentAssessmentStatus.available)
+                  .map((assessment) => _buildAssessmentCard(assessment)),
+              const SizedBox(height: 32),
+            ],
             
-            _buildAssessmentCard(
-              title: 'React Components Test',
-              duration: '25 min',
-              questions: '10 questions',
-              status: 'upcoming',
-              buttonText: 'Coming Soon',
-              onPressed: null,
-            ),
+            // Completed Assessments
+            if (_assessments.where((a) => a.status == StudentAssessmentStatus.completed).isNotEmpty) ...[
+              const Text(
+                'Completed Assessments',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87,
+                ),
+              ),
+              const SizedBox(height: 16),
+              ..._assessments
+                  .where((a) => a.status == StudentAssessmentStatus.completed)
+                  .map((assessment) => _buildCompletedCard(assessment)),
+            ],
+            
+            if (_assessments.isEmpty) ...[
+              const Center(
+                child: Column(
+                  children: [
+                    Icon(Icons.assignment, size: 64, color: Colors.grey),
+                    SizedBox(height: 16),
+                    Text('No assessments available', style: TextStyle(fontSize: 18, color: Colors.grey)),
+                  ],
+                ),
+              ),
+            ],
           ],
         ),
       ),
     );
   }
 
-  Widget _buildAssessmentCard({
-    required String title,
-    required String duration,
-    required String questions,
-    required String status,
-    required String buttonText,
-    String? score,
-    VoidCallback? onPressed,
-  }) {
-    Color statusColor;
-    Color buttonColor;
-    Color? buttonTextColor;
-    
-    switch (status) {
-      case 'available':
-        statusColor = AppColors.primary;
-        buttonColor = AppColors.primary;
-        buttonTextColor = Colors.white;
-        break;
-      case 'completed':
-        statusColor = AppColors.success;
-        buttonColor = AppColors.success.withOpacity(0.1);
-        buttonTextColor = AppColors.success;
-        break;
-      case 'upcoming':
-        statusColor = AppColors.warning;
-        buttonColor = AppColors.primary;
-        buttonTextColor = Colors.white;
-        break;
-      default:
-        statusColor = Colors.grey;
-        buttonColor = Colors.grey;
-        buttonTextColor = Colors.white;
-    }
-
+  Widget _buildAssessmentCard(StudentAssessment assessment) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 20),
+      margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: Colors.white,
@@ -104,109 +183,147 @@ class StudentAssessmentsScreen extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Expanded(
-                child: Text(
-                  title,
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black87,
-                  ),
-                ),
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                decoration: BoxDecoration(
-                  color: statusColor,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Text(
-                  status,
-                  style: const TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.white,
-                  ),
-                ),
-              ),
-            ],
+          Text(
+            assessment.title,
+            style: const TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Colors.black87,
+            ),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 16),
           Row(
             children: [
               Icon(Icons.access_time, size: 16, color: Colors.grey[600]),
               const SizedBox(width: 4),
-              Text(duration, style: const TextStyle(fontSize: 14, color: Colors.grey)),
+              Text(assessment.duration, style: const TextStyle(fontSize: 14, color: Colors.grey)),
               const SizedBox(width: 16),
               Icon(Icons.quiz, size: 16, color: Colors.grey[600]),
               const SizedBox(width: 4),
-              Text(questions, style: const TextStyle(fontSize: 14, color: Colors.grey)),
+              Text(assessment.questions, style: const TextStyle(fontSize: 14, color: Colors.grey)),
             ],
           ),
-          if (score != null) ...[
+          if (assessment.dueDate != null) ...[
             const SizedBox(height: 12),
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: AppColors.success.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'Completed',
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.success,
-                    ),
-                  ),
-                  Text(
-                    'Score: $score',
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.success,
-                    ),
-                  ),
-                ],
-              ),
+            Text(
+              'Due: ${assessment.dueDate}',
+              style: TextStyle(fontSize: 14, color: AppColors.warning, fontWeight: FontWeight.w500),
             ),
           ],
           const SizedBox(height: 16),
           SizedBox(
             width: double.infinity,
-            child: ElevatedButton(
-              onPressed: onPressed,
+            child: ElevatedButton.icon(
+              onPressed: () => _startAssessment(assessment),
               style: ElevatedButton.styleFrom(
-                backgroundColor: buttonColor,
+                backgroundColor: AppColors.primary,
                 padding: const EdgeInsets.symmetric(vertical: 12),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                elevation: status == 'completed' ? 0 : 2,
               ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  if (status == 'available') ...[
-                    const Icon(Icons.play_arrow, color: Colors.white),
-                    const SizedBox(width: 8),
-                  ],
-                  Text(
-                    buttonText,
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      color: buttonTextColor,
-                    ),
-                  ),
-                ],
+              icon: const Icon(Icons.play_arrow, color: Colors.white),
+              label: const Text(
+                'Start Assessment',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.white,
+                ),
               ),
             ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCompletedCard(StudentAssessment assessment) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.success.withOpacity(0.3)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.1),
+            spreadRadius: 1,
+            blurRadius: 4,
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            assessment.title,
+            style: const TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Colors.black87,
+            ),
+          ),
+          const SizedBox(height: 12),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: AppColors.success.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Score: ${assessment.score ?? 'N/A'}',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.success,
+                      ),
+                    ),
+                    if (assessment.completedDate != null)
+                      Text(
+                        'Completed: ${assessment.completedDate}',
+                        style: const TextStyle(fontSize: 14, color: Colors.grey),
+                      ),
+                  ],
+                ),
+                Icon(Icons.check_circle, color: AppColors.success, size: 32),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _startAssessment(StudentAssessment assessment) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Start ${assessment.title}'),
+        content: const Text('Are you ready to begin this assessment?'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+          ElevatedButton(
+            onPressed: () async {
+              Navigator.pop(context);
+              final user = FirebaseAuth.instance.currentUser;
+              if (user != null) {
+                final success = await _assessmentService.startAssessment(assessment.id, user.uid);
+                if (success) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Starting ${assessment.title}...')),
+                  );
+                  _loadAssessments(); // Refresh
+                }
+              }
+            },
+            child: const Text('Start'),
           ),
         ],
       ),

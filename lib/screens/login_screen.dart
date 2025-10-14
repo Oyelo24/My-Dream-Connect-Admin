@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 import '../utils/app_routes.dart';
-import '../viewmodels/login_viewmodel.dart';
+import '../services/auth_service.dart';
+import '../models/login_request.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -13,25 +13,41 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _authService = AuthService();
   bool _obscurePassword = true;
+  bool _isLoading = false;
+  String? _errorMessage;
+  String _selectedRole = 'student';
+  bool _hasInitialized = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_hasInitialized) {
+      final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
+      if (args != null && args['role'] != null) {
+        setState(() {
+          _selectedRole = args['role'].toString();
+        });
+        print('Login screen received role: $_selectedRole');
+      }
+      _hasInitialized = true;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider(
-      create: (_) => LoginViewModel(),
-      child: Scaffold(
-        backgroundColor: Colors.white,
-        body: SafeArea(
-          child: SingleChildScrollView(
-            padding: EdgeInsets.symmetric(
-              horizontal: MediaQuery.of(context).size.width > 600 ? 48.0 : 24.0,
-              vertical: 24.0,
-            ),
-            child: Consumer<LoginViewModel>(
-              builder: (context, viewModel, child) {
-                return Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
+    return Scaffold(
+      backgroundColor: Colors.white,
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: EdgeInsets.symmetric(
+            horizontal: MediaQuery.of(context).size.width > 600 ? 48.0 : 24.0,
+            vertical: 24.0,
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
                     const SizedBox(height: 40),
                     // Logo
                     Image.asset(
@@ -53,7 +69,23 @@ class _LoginScreenState extends State<LoginScreen> {
                       'Sign in to continue',
                       style: TextStyle(fontSize: 14, color: Colors.grey),
                     ),
-                    const SizedBox(height: 32),
+                    const SizedBox(height: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: _selectedRole == 'admin' ? Colors.blue[100] : Colors.green[100],
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: Text(
+                        'Role: ${_selectedRole.toUpperCase()}',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          color: _selectedRole == 'admin' ? Colors.blue[800] : Colors.green[800],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 24),
                     // Email field
                     TextField(
                       controller: _emailController,
@@ -111,44 +143,15 @@ class _LoginScreenState extends State<LoginScreen> {
                       width: double.infinity,
                       height: 50,
                       child: ElevatedButton(
-                        onPressed: viewModel.isLoading
-                            ? null
-                            : () async {
-                                final success = await viewModel.login(
-                                  _emailController.text,
-                                  _passwordController.text,
-                                );
-                                if (success && mounted) {
-                                  // Get user role and navigate to appropriate dashboard
-                                  final role = await viewModel.getUserRole();
-                                  if (role == 'admin') {
-                                    Navigator.pushReplacementNamed(
-                                      context,
-                                      AppRoutes.adminDashboard,
-                                    );
-                                  } else if (role == 'student') {
-                                    Navigator.pushReplacementNamed(
-                                      context,
-                                      AppRoutes.studentDashboard,
-                                    );
-                                  } else {
-                                    Navigator.pushReplacementNamed(
-                                      context,
-                                      AppRoutes.roleSelector,
-                                    );
-                                  }
-                                }
-                              },
+                        onPressed: _isLoading ? null : _handleLogin,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFF4A90E2),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(8),
                           ),
                         ),
-                        child: viewModel.isLoading
-                            ? const CircularProgressIndicator(
-                                color: Colors.white,
-                              )
+                        child: _isLoading
+                            ? const CircularProgressIndicator(color: Colors.white)
                             : const Text(
                                 'Sign In',
                                 style: TextStyle(
@@ -160,11 +163,11 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                     ),
                     // Error message
-                    if (viewModel.errorMessage != null)
+                    if (_errorMessage != null)
                       Padding(
                         padding: const EdgeInsets.only(top: 16),
                         child: Text(
-                          viewModel.errorMessage!,
+                          _errorMessage!,
                           style: const TextStyle(color: Colors.red),
                         ),
                       ),
@@ -179,7 +182,8 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                         GestureDetector(
                           onTap: () {
-                            Navigator.pushNamed(context, AppRoutes.signup);
+                            print('Navigating to signup with role: $_selectedRole');
+                            Navigator.pushNamed(context, AppRoutes.signup, arguments: {'role': _selectedRole});
                           },
                           child: const Text(
                             'Sign up here',
@@ -192,14 +196,44 @@ class _LoginScreenState extends State<LoginScreen> {
                       ],
                     ),
                     const SizedBox(height: 40),
-                  ],
-                );
-              },
-            ),
+            ],
           ),
         ),
       ),
     );
+  }
+
+  Future<void> _handleLogin() async {
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    try {
+      final request = LoginRequest(
+        email: _emailController.text,
+        password: _passwordController.text,
+      );
+      
+      final response = await _authService.login(request);
+      
+      if (mounted) {
+        final role = response.role ?? 'student';
+        if (role == 'admin') {
+          Navigator.pushReplacementNamed(context, AppRoutes.adminDashboard);
+        } else {
+          Navigator.pushReplacementNamed(context, AppRoutes.studentDashboard);
+        }
+      }
+    } catch (e) {
+      setState(() {
+        _errorMessage = e.toString().replaceFirst('Exception: ', '');
+      });
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
+    }
   }
 
   @override

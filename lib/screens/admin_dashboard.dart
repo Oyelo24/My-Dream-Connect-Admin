@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
-import '../services/dashboard_service.dart';
-import '../services/track_service.dart';
-import '../models/track.dart';
-import 'student_management.dart';
 import 'attendance_management_screen.dart';
 import 'assessment_management_screen.dart';
-import 'analytics_dashboard_screen.dart';
-
 import 'settings_screen.dart';
+import 'student_management.dart';
+import 'analytics_screen.dart';
+import 'track_management_screen.dart';
+import 'module_management_screen.dart';
+import '../services/admin_dashboard_service.dart';
+import '../models/student.dart';
 
 class AdminDashboard extends StatefulWidget {
   const AdminDashboard({super.key});
@@ -18,16 +18,36 @@ class AdminDashboard extends StatefulWidget {
 
 class _AdminDashboardState extends State<AdminDashboard> {
   int _selectedIndex = 0;
-
+  final AdminDashboardService _dashboardService = AdminDashboardService();
+  
   // Dashboard data
-  late List<String> _menuItems;
-  late Map<String, String> _appConfig;
-  late Map<String, dynamic> _statistics;
-  late List<Map<String, String>> _recentActivities;
-  late List<Map<String, String>> _urgentTasks;
-  late List<Map<String, String>> _upcomingAssessments;
-  late Map<String, dynamic> _assessmentProgress;
-  Map<String, Color> _themeColors = DashboardService.getThemeColors();
+  Map<String, dynamic> _dashboardStats = {};
+  List<Student> _recentStudents = [];
+  List<Map<String, dynamic>> _recentActivity = [];
+  List<Map<String, dynamic>> _upcomingAssessments = [];
+  bool _isLoading = true;
+
+  final List<String> _menuItems = [
+    'Dashboard',
+    'Student Management',
+    'Track Management',
+    'Attendance Management',
+    'Assessment Management',
+    'Module Management',
+    'Analytics',
+    'Settings'
+  ];
+  final Map<String, String> _appConfig = {
+    'appName': 'MDC Admin',
+    'appSubtitle': 'Panel',
+    'initials': 'MA'
+  };
+
+  final Map<String, Color> _themeColors = {
+    'primary': const Color(0xFF4A90E2),
+    'secondary': const Color(0xFF4CAF50),
+    'accent': const Color(0xFFFF9800),
+  };
 
   @override
   void initState() {
@@ -37,37 +57,23 @@ class _AdminDashboardState extends State<AdminDashboard> {
 
   Future<void> _loadDashboardData() async {
     try {
-      // Load all dashboard data
-      _menuItems = DashboardService.getMenuItems();
-      _appConfig = DashboardService.getAppConfig();
-      _statistics = await DashboardService.getStatistics();
-      _recentActivities = await DashboardService.getRecentActivities();
-      _urgentTasks = await DashboardService.getUrgentTasks();
-      _upcomingAssessments = await DashboardService.getUpcomingAssessments();
-      _assessmentProgress = await DashboardService.getAssessmentProgress();
-      _themeColors = DashboardService.getThemeColors();
+      final stats = await _dashboardService.getDashboardStats();
+      final students = await _dashboardService.getRecentStudents();
+      final activity = await _dashboardService.getRecentActivity();
+      final assessments = await _dashboardService.getUpcomingAssessments();
+      
+      setState(() {
+        _dashboardStats = stats;
+        _recentStudents = students;
+        _recentActivity = activity;
+        _upcomingAssessments = assessments;
+        _isLoading = false;
+      });
     } catch (e) {
-      // Use default values if loading fails
-      _menuItems = DashboardService.getMenuItems();
-      _appConfig = DashboardService.getAppConfig();
-      _statistics = {
-        'totalStudents': {'value': '0', 'change': '', 'color': 0xFF4A90E2},
-        'activeStudents': {'value': '0', 'change': '', 'color': 0xFF4CAF50},
-        'totalAssessments': {'value': '0', 'change': '', 'color': 0xFFFF9800},
-        'attendanceRate': {'value': '0%', 'change': '', 'color': 0xFF2C3E50},
-      };
-      _recentActivities = [];
-      _urgentTasks = [];
-      _upcomingAssessments = [];
-      _assessmentProgress = {
-        'completed': '0/0',
-        'percentage': 0.0,
-        'averageGrade': 'N/A',
-      };
-      _themeColors = DashboardService.getThemeColors();
+      setState(() {
+        _isLoading = false;
+      });
     }
-
-    setState(() {});
   }
 
   @override
@@ -135,7 +141,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
                         final isSelected = _selectedIndex == index;
                         return ListTile(
                           leading: Icon(
-                            DashboardService.getMenuIcon(index),
+                            _getMenuIcon(index),
                             color: isSelected ? Colors.white : Colors.white70,
                           ),
                           title: Text(
@@ -173,7 +179,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
                     color: Colors.white,
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.grey.withOpacity(0.1),
+                        color: Colors.grey.withValues(alpha: 0.1),
                         spreadRadius: 1,
                         blurRadius: 4,
                       ),
@@ -258,24 +264,45 @@ class _AdminDashboardState extends State<AdminDashboard> {
     );
   }
 
+  IconData _getMenuIcon(int index) {
+    switch (index) {
+      case 0: return Icons.dashboard;
+      case 1: return Icons.people;
+      case 2: return Icons.track_changes;
+      case 3: return Icons.check_circle;
+      case 4: return Icons.assignment;
+      case 5: return Icons.extension;
+      case 6: return Icons.analytics;
+      case 7: return Icons.settings;
+      default: return Icons.menu;
+    }
+  }
+
   String _getPageTitle() {
-    return DashboardService.getPageTitle(_selectedIndex);
+    switch (_selectedIndex) {
+      case 0: return 'Dashboard';
+      case 1: return 'Student Management';
+      case 2: return 'Track Management';
+      case 3: return 'Attendance Management';
+      case 4: return 'Assessment Management';
+      case 5: return 'Module Management';
+      case 6: return 'Analytics';
+      case 7: return 'Settings';
+      default: return 'Dashboard';
+    }
   }
 
   String _getPageSubtitle() {
-    return DashboardService.getPageSubtitle(_selectedIndex);
-  }
-
-  Color _getPriorityColor(String priority) {
-    switch (priority.toUpperCase()) {
-      case 'HIGH':
-        return Colors.red;
-      case 'MEDIUM':
-        return Colors.orange;
-      case 'LOW':
-        return Colors.grey;
-      default:
-        return Colors.grey;
+    switch (_selectedIndex) {
+      case 0: return 'Overview of your tech cohort';
+      case 1: return 'Manage student records and enrollment';
+      case 2: return 'Manage learning tracks and curriculum';
+      case 3: return 'Track and manage attendance';
+      case 4: return 'Create and manage assessments';
+      case 5: return 'Manage learning modules';
+      case 6: return 'View reports and analytics';
+      case 7: return 'System configuration';
+      default: return 'Welcome to the admin panel';
     }
   }
 
@@ -286,15 +313,15 @@ class _AdminDashboardState extends State<AdminDashboard> {
       case 1:
         return const StudentManagement();
       case 2:
-        return _buildAttendanceContent();
+        return const TrackManagementScreen();
       case 3:
-        return _buildAssessmentContent();
+        return const AttendanceManagementScreen();
       case 4:
-        return _buildAnalyticsContent();
+        return const AssessmentManagementScreen();
       case 5:
-        return _buildTrackManagementContent();
+        return const ModuleManagementScreen();
       case 6:
-        return _buildInstructorManagementContent();
+        return const AnalyticsScreen();
       case 7:
         return const SettingsScreen();
       default:
@@ -303,729 +330,346 @@ class _AdminDashboardState extends State<AdminDashboard> {
   }
 
   Widget _buildDashboardContent() {
-    final screenWidth = MediaQuery.of(context).size.width;
-    final isMobile = screenWidth < 768;
+    if (_isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
 
     return SingleChildScrollView(
-      padding: EdgeInsets.all(isMobile ? 16 : 24),
+      padding: const EdgeInsets.all(20),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Stats Cards Row
-          isMobile
+          _buildStatsCards(),
+          const SizedBox(height: 24),
+          MediaQuery.of(context).size.width < 768
               ? Column(
                   children: [
-                    _buildStatCard(
-                      'Total Students',
-                      _statistics['totalStudents']['value'],
-                      _statistics['totalStudents']['change'],
-                      Color(_statistics['totalStudents']['color']),
-                      Icons.people,
-                    ),
-                    const SizedBox(height: 16),
-                    _buildStatCard(
-                      'Active Students',
-                      _statistics['activeStudents']['value'],
-                      _statistics['activeStudents']['change'],
-                      Color(_statistics['activeStudents']['color']),
-                      Icons.check_circle,
-                    ),
-                    const SizedBox(height: 16),
-                    _buildStatCard(
-                      'Total Assessments',
-                      _statistics['totalAssessments']['value'],
-                      _statistics['totalAssessments']['change'],
-                      Color(_statistics['totalAssessments']['color']),
-                      Icons.assignment,
-                    ),
-                    const SizedBox(height: 16),
-                    _buildAttendanceCard(),
+                    _buildRecentStudents(),
+                    const SizedBox(height: 20),
+                    _buildUpcomingAssessments(),
+                    const SizedBox(height: 20),
+                    _buildRecentActivity(),
                   ],
                 )
               : Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Expanded(
-                      child: _buildStatCard(
-                        'Total Students',
-                        _statistics['totalStudents']['value'],
-                        _statistics['totalStudents']['change'],
-                        Color(_statistics['totalStudents']['color']),
-                        Icons.people,
+                      flex: 2,
+                      child: Column(
+                        children: [
+                          _buildRecentStudents(),
+                          const SizedBox(height: 20),
+                          _buildUpcomingAssessments(),
+                        ],
                       ),
                     ),
-                    const SizedBox(width: 16),
+                    const SizedBox(width: 20),
                     Expanded(
-                      child: _buildStatCard(
-                        'Active Students',
-                        _statistics['activeStudents']['value'],
-                        _statistics['activeStudents']['change'],
-                        Color(_statistics['activeStudents']['color']),
-                        Icons.check_circle,
-                      ),
+                      child: _buildRecentActivity(),
                     ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: _buildStatCard(
-                        'Total Assessments',
-                        _statistics['totalAssessments']['value'],
-                        _statistics['totalAssessments']['change'],
-                        Color(_statistics['totalAssessments']['color']),
-                        Icons.assignment,
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    _buildAttendanceCard(),
                   ],
-                ),
-          const SizedBox(height: 24),
-          // Content Row
-          isMobile
-              ? Column(
-                  children: [
-                    SizedBox(height: 300, child: _buildRecentActivities()),
-                    const SizedBox(height: 24),
-                    SizedBox(height: 200, child: _buildAssessmentProgress()),
-                    const SizedBox(height: 24),
-                    SizedBox(height: 300, child: _buildUrgentTasks()),
-                    const SizedBox(height: 24),
-                    SizedBox(height: 200, child: _buildUpcomingAssessments()),
-                  ],
-                )
-              : SizedBox(
-                  height: 600,
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Left Column
-                      Expanded(
-                        flex: 2,
-                        child: Column(
-                          children: [
-                            Expanded(child: _buildRecentActivities()),
-                            const SizedBox(height: 24),
-                            Expanded(child: _buildAssessmentProgress()),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(width: 24),
-                      // Right Column
-                      Expanded(
-                        child: Column(
-                          children: [
-                            Expanded(child: _buildUrgentTasks()),
-                            const SizedBox(height: 24),
-                            Expanded(child: _buildUpcomingAssessments()),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
                 ),
         ],
       ),
     );
   }
 
-  Widget _buildStatCard(
-    String title,
-    String value,
-    String subtitle,
-    Color color,
-    IconData icon,
-  ) {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: color,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                title,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-              Icon(icon, color: Colors.white, size: 24),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Text(
-            value,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 32,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          if (subtitle.isNotEmpty)
-            Text(
-              subtitle,
-              style: const TextStyle(color: Colors.white70, fontSize: 12),
-            ),
-        ],
-      ),
-    );
-  }
+  Widget _buildStatsCards() {
+    final stats = [
+      {
+        'title': 'Total Students',
+        'value': '${_dashboardStats['totalStudents'] ?? 0}',
+        'icon': Icons.people,
+        'color': _themeColors['primary']!,
+        'change': '+12%',
+      },
+      {
+        'title': 'Total Courses',
+        'value': '${_dashboardStats['totalCourses'] ?? 0}',
+        'icon': Icons.book,
+        'color': _themeColors['secondary']!,
+        'change': '+5%',
+      },
+      {
+        'title': 'Assessments',
+        'value': '${_dashboardStats['totalAssessments'] ?? 0}',
+        'icon': Icons.assignment,
+        'color': _themeColors['accent']!,
+        'change': '+8%',
+      },
+      {
+        'title': 'Attendance Rate',
+        'value': '${(_dashboardStats['attendanceRate'] ?? 0.0).toStringAsFixed(1)}%',
+        'icon': Icons.check_circle,
+        'color': Colors.green,
+        'change': '+3%',
+      },
+    ];
 
-  Widget _buildAttendanceCard() {
     final screenWidth = MediaQuery.of(context).size.width;
-    final isMobile = screenWidth < 768;
-
-    return Container(
-      width: isMobile ? double.infinity : 200,
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey[200]!),
+    final crossAxisCount = screenWidth < 768 ? 2 : 4;
+    
+    return GridView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: crossAxisCount,
+        crossAxisSpacing: 16,
+        mainAxisSpacing: 16,
+        childAspectRatio: 1.5,
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'Attendance Rate',
-                style: TextStyle(
-                  color: Colors.grey[600],
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-              Icon(Icons.calendar_today, color: Colors.grey[600], size: 20),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Text(
-            _statistics['attendanceRate']['value'],
-            style: const TextStyle(
-              color: Colors.black87,
-              fontSize: 32,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildRecentActivities() {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey[200]!),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Row(
-            children: [
-              Icon(Icons.timeline, size: 20),
-              SizedBox(width: 8),
-              Text(
-                'Recent Student Activities',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-              ),
-            ],
-          ),
-          const SizedBox(height: 4),
-          Text(
-            'Latest student interactions and submissions',
-            style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-          ),
-          const SizedBox(height: 16),
-          Expanded(
-            child: _recentActivities.isEmpty
-                ? const Center(
-                    child: Text(
-                      'No recent activities',
-                      style: TextStyle(color: Colors.grey),
-                    ),
-                  )
-                : ListView.builder(
-                    itemCount: _recentActivities.length,
-                    itemBuilder: (context, index) {
-                      final activity = _recentActivities[index];
-                      return _buildActivityItem(
-                        activity['name'] ?? '',
-                        activity['action'] ?? '',
-                        activity['time'] ?? '',
-                        activity['score'] ?? '',
-                      );
-                    },
-                  ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildActivityItem(
-    String name,
-    String action,
-    String time,
-    String score,
-  ) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: Row(
-        children: [
-          Container(
-            width: 8,
-            height: 8,
-            decoration: BoxDecoration(
-              color: _themeColors['primary'],
-              shape: BoxShape.circle,
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
+      itemCount: stats.length,
+      itemBuilder: (context, index) {
+        final stat = stats[index];
+        return Card(
+          elevation: 2,
+          child: Padding(
+            padding: const EdgeInsets.all(16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                RichText(
-                  text: TextSpan(
-                    children: [
-                      TextSpan(
-                        text: name,
-                        style: TextStyle(
-                          color: _themeColors['primary'],
-                          fontWeight: FontWeight.w600,
-                          fontSize: 14,
-                        ),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Icon(
+                      stat['icon'] as IconData,
+                      color: stat['color'] as Color,
+                      size: 24,
+                    ),
+                    Text(
+                      stat['change'] as String,
+                      style: const TextStyle(
+                        color: Colors.green,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
                       ),
-                      TextSpan(
-                        text: ' $action',
-                        style: const TextStyle(
-                          color: Colors.black87,
-                          fontSize: 14,
-                        ),
-                      ),
-                    ],
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  stat['value'] as String,
+                  style: const TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
-                const SizedBox(height: 2),
-                Row(
-                  children: [
-                    Text(
-                      time,
-                      style: TextStyle(color: Colors.grey[600], fontSize: 12),
-                    ),
-                    if (score.isNotEmpty) ...[
-                      const SizedBox(width: 8),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 6,
-                          vertical: 2,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.grey[100],
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                        child: Text(
-                          score,
-                          style: const TextStyle(
-                            fontSize: 10,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ],
+                Text(
+                  stat['title'] as String,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.grey[600],
+                  ),
                 ),
               ],
             ),
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 
-  Widget _buildAssessmentProgress() {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey[200]!),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'Assessment Progress',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            'Bootcamp curriculum completion status',
-            style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-          ),
-          const SizedBox(height: 20),
-          Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Completed Assessments',
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    LinearProgressIndicator(
-                      value: _assessmentProgress['percentage'],
-                      backgroundColor: Colors.grey[200],
-                      valueColor: AlwaysStoppedAnimation<Color>(
-                        _themeColors['primary']!,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      _assessmentProgress['completed'],
-                      style: const TextStyle(
-                        fontSize: 12,
-                        color: Colors.black87,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 40),
-              Column(
-                children: [
-                  const Text(
-                    'Average Grade',
-                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
-                  ),
-                  const SizedBox(height: 8),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 6,
-                    ),
-                    decoration: BoxDecoration(
-                      color: _themeColors['success'],
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Text(
-                      _assessmentProgress['averageGrade'],
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildUrgentTasks() {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey[200]!),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Row(
-            children: [
-              Icon(Icons.priority_high, color: Colors.orange, size: 20),
-              SizedBox(width: 8),
-              Text(
-                'Urgent Tasks',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-              ),
-            ],
-          ),
-          const SizedBox(height: 4),
-          Text(
-            'Items that need immediate attention',
-            style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-          ),
-          const SizedBox(height: 16),
-          Expanded(
-            child: _urgentTasks.isEmpty
-                ? const Center(
-                    child: Text(
-                      'No urgent tasks',
-                      style: TextStyle(color: Colors.grey),
-                    ),
-                  )
-                : ListView.builder(
-                    itemCount: _urgentTasks.length,
-                    itemBuilder: (context, index) {
-                      final task = _urgentTasks[index];
-                      return GestureDetector(
-                        onTap: () {
-                          // Handle task tap if needed
-                        },
-                        child: _buildTaskItem(
-                          task['task'] ?? '',
-                          task['priority'] ?? 'LOW',
-                          _getPriorityColor(task['priority'] ?? 'LOW'),
-                        ),
-                      );
-                    },
-                  ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildTaskItem(String task, String priority, Color color) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-            decoration: BoxDecoration(
-              color: color,
-              borderRadius: BorderRadius.circular(4),
-            ),
-            child: Text(
-              priority,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 10,
+  Widget _buildRecentStudents() {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Recent Students',
+              style: TextStyle(
+                fontSize: 18,
                 fontWeight: FontWeight.bold,
               ),
             ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(child: Text(task, style: const TextStyle(fontSize: 14))),
-        ],
+            const SizedBox(height: 16),
+            if (_recentStudents.isEmpty)
+              const Center(
+                child: Padding(
+                  padding: EdgeInsets.all(20),
+                  child: Text('No students found'),
+                ),
+              )
+            else
+              ListView.separated(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: _recentStudents.length,
+                separatorBuilder: (context, index) => const Divider(),
+                itemBuilder: (context, index) {
+                  final student = _recentStudents[index];
+                  return ListTile(
+                    leading: CircleAvatar(
+                      backgroundColor: _themeColors['primary'],
+                      child: Text(
+                        student.name.isNotEmpty ? student.name[0].toUpperCase() : 'S',
+                        style: const TextStyle(color: Colors.white),
+                      ),
+                    ),
+                    title: Text(student.name),
+                    subtitle: Text(student.email),
+                    trailing: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Text(
+                          student.attendance,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: Colors.green,
+                          ),
+                        ),
+                        Text(
+                          student.lastSeen,
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey[600],
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              ),
+          ],
+        ),
       ),
     );
   }
 
   Widget _buildUpcomingAssessments() {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey[200]!),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Row(
-            children: [
-              Icon(Icons.schedule, size: 20),
-              SizedBox(width: 8),
-              Text(
-                'Upcoming Assessments',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-              ),
-            ],
-          ),
-          const SizedBox(height: 4),
-          Text(
-            'Scheduled assessments this month',
-            style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-          ),
-          const SizedBox(height: 16),
-          Expanded(
-            child: _upcomingAssessments.isEmpty
-                ? const Center(
-                    child: Text(
-                      'No upcoming assessments',
-                      style: TextStyle(color: Colors.grey),
-                    ),
-                  )
-                : ListView.builder(
-                    itemCount: _upcomingAssessments.length,
-                    itemBuilder: (context, index) {
-                      final assessment = _upcomingAssessments[index];
-                      return _buildAssessmentItem(
-                        assessment['title'] ?? '',
-                        assessment['date'] ?? '',
-                        assessment['students'] ?? '',
-                      );
-                    },
-                  ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildAssessmentItem(String title, String date, String students) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            title,
-            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
-          ),
-          const SizedBox(height: 4),
-          Text(date, style: TextStyle(fontSize: 12, color: Colors.grey[600])),
-          const SizedBox(height: 2),
-          Text(
-            students,
-            style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildAttendanceContent() {
-    return const AttendanceManagementScreen();
-  }
-
-  Widget _buildAssessmentContent() {
-    return const AssessmentManagementScreen();
-  }
-
-  Widget _buildAnalyticsContent() {
-    return const AnalyticsDashboardScreen();
-  }
-
-  Widget _buildTrackManagementContent() {
-    final tracks = TrackService.getTechTracks();
-    final screenWidth = MediaQuery.of(context).size.width;
-    final isMobile = screenWidth < 768;
-    
-    return Container(
-      padding: const EdgeInsets.all(24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Tech Tracks',
-                    style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Manage available tech tracks and curriculum',
-                    style: TextStyle(color: Colors.grey[600]),
-                  ),
-                ],
-              ),
-              if (!isMobile)
-                ElevatedButton.icon(
-                  onPressed: () {},
-                  icon: const Icon(Icons.add, size: 16),
-                  label: const Text('Add Track'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: _themeColors['primary'],
-                    foregroundColor: Colors.white,
-                  ),
-                ),
-            ],
-          ),
-          const SizedBox(height: 24),
-          Expanded(
-            child: isMobile
-                ? ListView.builder(
-                    itemCount: tracks.length,
-                    itemBuilder: (context, index) {
-                      return Padding(
-                        padding: const EdgeInsets.only(bottom: 16),
-                        child: _buildTrackCard(tracks[index]),
-                      );
-                    },
-                  )
-                : GridView.builder(
-                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 2,
-                      crossAxisSpacing: 16,
-                      mainAxisSpacing: 16,
-                      childAspectRatio: 1.5,
-                    ),
-                    itemCount: tracks.length,
-                    itemBuilder: (context, index) {
-                      return _buildTrackCard(tracks[index]);
-                    },
-                  ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildInstructorManagementContent() {
-    return Container(
-      padding: const EdgeInsets.all(24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'Instructors',
-            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Manage instructors and their assignments',
-            style: TextStyle(color: Colors.grey[600]),
-          ),
-          const SizedBox(height: 24),
-          Expanded(
-            child: Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    Icons.school,
-                    size: 64,
-                    color: Colors.grey[400],
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    'Instructor Management',
-                    style: TextStyle(
-                      fontSize: 18,
-                      color: Colors.grey[600],
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Instructor management will be implemented based on your requirements',
-                    style: TextStyle(color: Colors.grey[500]),
-                    textAlign: TextAlign.center,
-                  ),
-                ],
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Upcoming Assessments',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
               ),
             ),
-          ),
-        ],
+            const SizedBox(height: 16),
+            if (_upcomingAssessments.isEmpty)
+              const Center(
+                child: Padding(
+                  padding: EdgeInsets.all(20),
+                  child: Text('No upcoming assessments'),
+                ),
+              )
+            else
+              ListView.separated(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: _upcomingAssessments.length,
+                separatorBuilder: (context, index) => const Divider(),
+                itemBuilder: (context, index) {
+                  final assessment = _upcomingAssessments[index];
+                  return ListTile(
+                    leading: Icon(
+                      Icons.assignment,
+                      color: _themeColors['accent'],
+                    ),
+                    title: Text(assessment['title']),
+                    subtitle: Text('${assessment['type']} • ${assessment['course']}'),
+                    trailing: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Text(
+                          assessment['dueDate'],
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        Text(
+                          '${assessment['totalMarks']} marks',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey[600],
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              ),
+          ],
+        ),
       ),
     );
+  }
+
+  Widget _buildRecentActivity() {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Recent Activity',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 16),
+            if (_recentActivity.isEmpty)
+              const Center(
+                child: Padding(
+                  padding: EdgeInsets.all(20),
+                  child: Text('No recent activity'),
+                ),
+              )
+            else
+              ListView.separated(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: _recentActivity.length,
+                separatorBuilder: (context, index) => const Divider(),
+                itemBuilder: (context, index) {
+                  final activity = _recentActivity[index];
+                  return ListTile(
+                    leading: Icon(
+                      _getActivityIcon(activity['icon']),
+                      color: activity['type'] == 'submission' 
+                          ? Colors.green 
+                          : Colors.blue,
+                    ),
+                    title: Text(activity['title']),
+                    subtitle: Text(activity['description']),
+                    trailing: Text(
+                      activity['time'],
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey[600],
+                      ),
+                    ),
+                  );
+                },
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  IconData _getActivityIcon(String iconName) {
+    switch (iconName) {
+      case 'assignment_turned_in':
+        return Icons.assignment_turned_in;
+      case 'check_circle':
+        return Icons.check_circle;
+      case 'cancel':
+        return Icons.cancel;
+      default:
+        return Icons.info;
+    }
   }
 
   Widget _buildDrawer() {
@@ -1034,47 +678,18 @@ class _AdminDashboardState extends State<AdminDashboard> {
         color: const Color(0xFF2C3E50),
         child: Column(
           children: [
-            // Header
             Container(
               padding: const EdgeInsets.all(20),
-              child: Row(
-                children: [
-                  CircleAvatar(
-                    backgroundColor: _themeColors['primary'],
-                    child: Text(
-                      _appConfig['initials'] ?? 'A',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        _appConfig['appName'] ?? 'Admin',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      Text(
-                        _appConfig['appSubtitle'] ?? 'Panel',
-                        style: const TextStyle(
-                          color: Colors.white70,
-                          fontSize: 12,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
+              child: const Text(
+                'MDC Admin',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
             const Divider(color: Colors.white24),
-            // Menu Items
             Expanded(
               child: ListView.builder(
                 itemCount: _menuItems.length,
@@ -1082,7 +697,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
                   final isSelected = _selectedIndex == index;
                   return ListTile(
                     leading: Icon(
-                      DashboardService.getMenuIcon(index),
+                      _getMenuIcon(index),
                       color: isSelected ? Colors.white : Colors.white70,
                     ),
                     title: Text(
@@ -1108,102 +723,6 @@ class _AdminDashboardState extends State<AdminDashboard> {
             ),
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _buildTrackCard(Track track) {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey[200]!),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withOpacity(0.1),
-            spreadRadius: 1,
-            blurRadius: 4,
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Text(
-                track.icon,
-                style: const TextStyle(fontSize: 32),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      track.name,
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    Text(
-                      '${track.duration} weeks',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey[600],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 8,
-                  vertical: 4,
-                ),
-                decoration: BoxDecoration(
-                  color: track.isActive ? Colors.green[100] : Colors.grey[100],
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Text(
-                  track.isActive ? 'Active' : 'Inactive',
-                  style: TextStyle(
-                    fontSize: 10,
-                    color: track.isActive ? Colors.green[700] : Colors.grey[600],
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Text(
-            track.description,
-            style: TextStyle(
-              fontSize: 14,
-              color: Colors.grey[600],
-            ),
-          ),
-          const SizedBox(height: 16),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                '${track.enrolledStudents} students',
-                style: TextStyle(
-                  fontSize: 12,
-                  color: Colors.grey[600],
-                ),
-              ),
-              TextButton(
-                onPressed: () {},
-                child: const Text('Manage'),
-              ),
-            ],
-          ),
-        ],
       ),
     );
   }

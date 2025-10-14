@@ -1,11 +1,56 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../utils/app_colors.dart';
+import '../models/course.dart';
+import '../services/firebase_course_service.dart';
 
-class StudentCoursesScreen extends StatelessWidget {
+class StudentCoursesScreen extends StatefulWidget {
   const StudentCoursesScreen({super.key});
 
   @override
+  State<StudentCoursesScreen> createState() => _StudentCoursesScreenState();
+}
+
+class _StudentCoursesScreenState extends State<StudentCoursesScreen> {
+  final FirebaseCourseService _courseService = FirebaseCourseService();
+  List<Course> _courses = [];
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadCourses();
+  }
+
+  Future<void> _loadCourses() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      final courses = await _courseService.getStudentCourses(user.uid);
+      setState(() {
+        _courses = courses;
+        _isLoading = false;
+      });
+    } else {
+      setState(() {
+        _courses = [];
+        _isLoading = false;
+      });
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Scaffold(
+        backgroundColor: Colors.grey,
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    final currentCourses = _courses.where((c) => c.status == CourseStatus.inProgress).toList();
+    final completedCourses = _courses.where((c) => c.status == CourseStatus.completed).toList();
+    final upcomingCourses = _courses.where((c) => c.status == CourseStatus.upcoming).toList();
+
     return Scaffold(
       backgroundColor: Colors.grey[50],
       body: SingleChildScrollView(
@@ -19,106 +64,54 @@ class StudentCoursesScreen extends StatelessWidget {
             ),
             const SizedBox(height: 24),
             
-            // Current Courses
-            const Text(
-              'Current Courses',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: Colors.black87,
+            if (currentCourses.isNotEmpty) ...[
+              const Text(
+                'Current Courses',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87,
+                ),
               ),
-            ),
-            const SizedBox(height: 16),
+              const SizedBox(height: 16),
+              ...currentCourses.map((course) => _buildCourseCard(course)),
+              const SizedBox(height: 32),
+            ],
             
-            _buildCourseCard(
-              title: 'Web Development Bootcamp',
-              instructor: 'Dr. Sarah Johnson',
-              progress: 0.75,
-              status: 'In Progress',
-              statusColor: AppColors.primary,
-            ),
-            
-            _buildCourseCard(
-              title: 'JavaScript Fundamentals',
-              instructor: 'Prof. Michael Chen',
-              progress: 0.90,
-              status: 'Almost Complete',
-              statusColor: AppColors.success,
-            ),
-            
-            const SizedBox(height: 32),
-            
-            // Completed Courses
-            const Text(
-              'Completed Courses',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: Colors.black87,
+            if (completedCourses.isNotEmpty) ...[
+              const Text(
+                'Completed Courses',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87,
+                ),
               ),
-            ),
-            const SizedBox(height: 16),
+              const SizedBox(height: 16),
+              ...completedCourses.map((course) => _buildCourseCard(course)),
+              const SizedBox(height: 32),
+            ],
             
-            _buildCourseCard(
-              title: 'HTML & CSS Mastery',
-              instructor: 'Dr. Emily Rodriguez',
-              progress: 1.0,
-              status: 'Completed',
-              statusColor: AppColors.success,
-              grade: 'A-',
-            ),
-            
-            _buildCourseCard(
-              title: 'Programming Logic',
-              instructor: 'Prof. David Kim',
-              progress: 1.0,
-              status: 'Completed',
-              statusColor: AppColors.success,
-              grade: 'B+',
-            ),
-            
-            const SizedBox(height: 32),
-            
-            // Upcoming Courses
-            const Text(
-              'Upcoming Courses',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: Colors.black87,
+            if (upcomingCourses.isNotEmpty) ...[
+              const Text(
+                'Upcoming Courses',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87,
+                ),
               ),
-            ),
-            const SizedBox(height: 16),
-            
-            _buildCourseCard(
-              title: 'React Development',
-              instructor: 'Dr. Alex Thompson',
-              progress: 0.0,
-              status: 'Starts Jan 15',
-              statusColor: AppColors.warning,
-            ),
-            
-            _buildCourseCard(
-              title: 'Node.js Backend',
-              instructor: 'Prof. Lisa Wang',
-              progress: 0.0,
-              status: 'Starts Feb 1',
-              statusColor: AppColors.warning,
-            ),
+              const SizedBox(height: 16),
+              ...upcomingCourses.map((course) => _buildCourseCard(course)),
+            ],
           ],
         ),
       ),
     );
   }
 
-  Widget _buildCourseCard({
-    required String title,
-    required String instructor,
-    required double progress,
-    required String status,
-    required Color statusColor,
-    String? grade,
-  }) {
+  Widget _buildCourseCard(Course course) {
+    Color statusColor = _getStatusColor(course.status);
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(20),
@@ -144,7 +137,7 @@ class StudentCoursesScreen extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      title,
+                      course.title,
                       style: const TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
@@ -153,7 +146,7 @@ class StudentCoursesScreen extends StatelessWidget {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      instructor,
+                      course.instructor,
                       style: const TextStyle(
                         fontSize: 14,
                         color: Colors.grey,
@@ -169,7 +162,7 @@ class StudentCoursesScreen extends StatelessWidget {
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Text(
-                  status,
+                  course.status.displayName,
                   style: const TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
@@ -181,7 +174,7 @@ class StudentCoursesScreen extends StatelessWidget {
           ),
           const SizedBox(height: 16),
           
-          if (progress > 0) ...[
+          if (course.progress > 0) ...[
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -194,7 +187,7 @@ class StudentCoursesScreen extends StatelessWidget {
                   ),
                 ),
                 Text(
-                  '${(progress * 100).round()}%',
+                  '${(course.progress * 100).round()}%',
                   style: const TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w500,
@@ -205,7 +198,7 @@ class StudentCoursesScreen extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             LinearProgressIndicator(
-              value: progress,
+              value: course.progress,
               backgroundColor: Colors.grey[200],
               valueColor: AlwaysStoppedAnimation<Color>(statusColor),
               minHeight: 8,
@@ -213,7 +206,7 @@ class StudentCoursesScreen extends StatelessWidget {
             const SizedBox(height: 16),
           ],
           
-          if (grade != null) ...[
+          if (course.grade != null) ...[
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(12),
@@ -233,7 +226,7 @@ class StudentCoursesScreen extends StatelessWidget {
                     ),
                   ),
                   Text(
-                    grade,
+                    course.grade!,
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
@@ -266,7 +259,7 @@ class StudentCoursesScreen extends StatelessWidget {
               const SizedBox(width: 12),
               Expanded(
                 child: ElevatedButton(
-                  onPressed: progress > 0 && progress < 1.0 ? () {} : null,
+                  onPressed: course.progress > 0 && course.progress < 1.0 ? () {} : null,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: statusColor,
                     shape: RoundedRectangleBorder(
@@ -274,7 +267,7 @@ class StudentCoursesScreen extends StatelessWidget {
                     ),
                   ),
                   child: Text(
-                    progress == 1.0 ? 'Completed' : progress > 0 ? 'Continue' : 'Coming Soon',
+                    _getButtonText(course),
                     style: const TextStyle(color: Colors.white),
                   ),
                 ),
@@ -284,5 +277,24 @@ class StudentCoursesScreen extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  Color _getStatusColor(CourseStatus status) {
+    switch (status) {
+      case CourseStatus.inProgress:
+        return AppColors.primary;
+      case CourseStatus.completed:
+        return AppColors.success;
+      case CourseStatus.upcoming:
+        return AppColors.warning;
+      case CourseStatus.paused:
+        return Colors.grey;
+    }
+  }
+
+  String _getButtonText(Course course) {
+    if (course.progress == 1.0) return 'Completed';
+    if (course.progress > 0) return 'Continue';
+    return 'Coming Soon';
   }
 }
